@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
+import { ChatIcon, GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
 import { LanguageFlagIcon } from "../components/language-flag-icon";
 import { UserRankBadge } from "../components/user-rank-badge";
 import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
@@ -71,6 +72,7 @@ type ProfileResponse = {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [data, setData] = useState<ProfileResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export default function ProfilePage() {
   const [friendProfileLoading, setFriendProfileLoading] = useState(false);
   const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
   const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
+  const [messageActionBusy, setMessageActionBusy] = useState(false);
   const [tagLanguage, setTagLanguage] = useState<LanguageCode>("en");
   const [friendProfileData, setFriendProfileData] = useState<{
     user: {
@@ -352,6 +355,37 @@ export default function ProfilePage() {
       setFriendProfileError("Failed to load friend profile.");
     } finally {
       setFriendProfileLoading(false);
+    }
+  }
+
+  async function handleMessageFromProfile(): Promise<void> {
+    if (!friendProfileData?.user.id) return;
+
+    try {
+      setMessageActionBusy(true);
+      const response = await fetch("/api/messages/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: friendProfileData.user.id }),
+      });
+      const json = (await response.json()) as { data?: { id: string }; error?: string };
+      if (!response.ok || !json.data?.id) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("ff:require-login"));
+          throw new Error("Login first to send message.");
+        }
+        throw new Error(json.error ?? "Failed to open chat.");
+      }
+
+      setFriendProfileOpen(false);
+      setFriendProfileData(null);
+      setFriendProfileError(null);
+      setFriendProfileTags([]);
+      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
+    } catch (error) {
+      setFriendProfileError(error instanceof Error ? error.message : "Failed to open chat.");
+    } finally {
+      setMessageActionBusy(false);
     }
   }
 
@@ -708,18 +742,29 @@ export default function ProfilePage() {
                 <UsersIcon className="ui-icon ui-icon-accent" />
                 {(friendProfileData?.user.displayName ?? friendProfileData?.user.username ?? "Player")} Profile
               </h3>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  setFriendProfileOpen(false);
-                  setFriendProfileData(null);
-                  setFriendProfileError(null);
-                  setFriendProfileTags([]);
-                }}
-              >
-                Close
-              </button>
+              <div className="profile-friend-modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleMessageFromProfile()}
+                  disabled={messageActionBusy || !friendProfileData?.user.id}
+                >
+                  <ChatIcon className="ui-icon" />
+                  {messageActionBusy ? "Opening..." : "Message"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setFriendProfileOpen(false);
+                    setFriendProfileData(null);
+                    setFriendProfileError(null);
+                    setFriendProfileTags([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {friendProfileLoading ? <p className="kpi-label">Loading friend profile...</p> : null}

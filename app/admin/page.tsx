@@ -56,7 +56,7 @@ type WordBankMode = "normal" | "advanced";
 type WordBankSummary = Record<LanguageCode, Record<WordBankMode, { active: boolean; count: number }>>;
 
 const BRANDING_SLOTS: Array<{ slot: BrandingSlot; label: string; hint: string; fallback: string }> = [
-  { slot: "headerWordmark", label: "Header Wordmark", hint: "Top navigation brand area", fallback: "/images/ffu-wordmark.svg" },
+  { slot: "headerWordmark", label: "Header Wordmark", hint: "Top navigation brand area (recommended 1600x220)", fallback: "/images/ffu-wordmark.svg" },
   { slot: "headerIcon", label: "Header Icon", hint: "Used when no custom wordmark", fallback: "/images/ff-transparent.png" },
   { slot: "sideRailIcon", label: "Side Rail Icon", hint: "Left navigation brand icon", fallback: "/images/ff-transparent.png" },
   { slot: "favicon", label: "Favicon", hint: "Browser tab icon", fallback: "/images/ff-transparent.png" },
@@ -621,7 +621,7 @@ export default function AdminPage() {
               );
             })}
             <p className="kpi-label">
-              Tip: use transparent PNG or SVG, max 3MB per file. Home Hero best in 16:9 (e.g. 1600x900, 1920x1080, or 1280x720).
+              Tip: use transparent PNG or SVG, max 3MB per file. Header Wordmark ideal at 1600x220. Home Hero best in 16:9 (e.g. 1600x900, 1920x1080, or 1280x720).
             </p>
           </div>
         ) : null}

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTIVE_MULTIPLAYER_ROOM_KEY, REQUIRE_EXIT_EVENT } from "@/lib/multiplayer-room-lock";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
-import { EyeIcon, EyeOffIcon, UsersIcon, UserIcon } from "./icons";
+import { BellIcon, ChatIcon, EyeIcon, EyeOffIcon, UsersIcon, UserIcon } from "./icons";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -14,6 +14,8 @@ const NAV_LINKS = [
   { href: "/typing-advanced", label: "Advanced" },
   { href: "/competition", label: "Competition" },
   { href: "/multiplayer", label: "Multiplayer" },
+  { href: "/messages", label: "Messages" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/profile", label: "My Profile" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/admin", label: "Admin" },
@@ -88,6 +90,9 @@ export default function GlobalHeader() {
   const [displayNameBusy, setDisplayNameBusy] = useState(false);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [brandingLogos, setBrandingLogos] = useState<Record<string, string | null>>({});
+  const [notificationUnread, setNotificationUnread] = useState(0);
+  const [notificationPulse, setNotificationPulse] = useState(false);
+  const previousUnreadRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -236,6 +241,49 @@ export default function GlobalHeader() {
     });
   }, [authModalOpen, authMode, busy]);
 
+  useEffect(() => {
+    if (!sessionUser?.id) {
+      setNotificationUnread(0);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadNotificationsSummary(): Promise<void> {
+      try {
+        const response = await fetch("/api/notifications?limit=1", { cache: "no-store" });
+        if (!response.ok) return;
+        const json = (await response.json()) as { summary?: { unreadCount?: number } };
+        if (!cancelled) {
+          setNotificationUnread(Math.max(0, Number(json.summary?.unreadCount ?? 0)));
+        }
+      } catch {
+        if (!cancelled) setNotificationUnread(0);
+      }
+    }
+
+    void loadNotificationsSummary();
+    const interval = window.setInterval(() => {
+      void loadNotificationsSummary();
+    }, 12_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [sessionUser?.id]);
+
+  useEffect(() => {
+    const previous = previousUnreadRef.current;
+    if (notificationUnread > previous) {
+      setNotificationPulse(true);
+      const timer = window.setTimeout(() => setNotificationPulse(false), 760);
+      previousUnreadRef.current = notificationUnread;
+      return () => window.clearTimeout(timer);
+    }
+    previousUnreadRef.current = notificationUnread;
+  }, [notificationUnread]);
+
   const authTitle = useMemo(
     () => (authMode === "register" ? "Create Account" : "Login"),
     [authMode],
@@ -243,6 +291,8 @@ export default function GlobalHeader() {
   const navLinks = useMemo(
     () =>
       NAV_LINKS.filter((item) => {
+        if (item.href === "/notifications") return Boolean(sessionUser?.username);
+        if (item.href === "/messages") return Boolean(sessionUser?.username);
         if (item.href === "/profile") return Boolean(sessionUser?.username);
         if (item.href === "/admin") return sessionUser?.role === "admin";
         return true;
@@ -257,7 +307,6 @@ export default function GlobalHeader() {
     () => getPasswordRequirements(formPassword),
     [formPassword],
   );
-
   function shouldBlockNavigation(targetHref: string): boolean {
     if (!pathname.startsWith("/multiplayer")) {
       return false;
@@ -463,36 +512,58 @@ export default function GlobalHeader() {
         </nav>
         <div className="nav-actions">
           {sessionUser?.username ? (
-            <div ref={userMenuRef} className={`auth-user-menu ${userMenuOpen ? "open" : ""}`}>
-              <button
-                type="button"
-                className="auth-pill auth-pill-trigger"
-                onClick={() => setUserMenuOpen((curr) => !curr)}
-                aria-expanded={userMenuOpen}
-                aria-label="Open user menu"
+            <>
+              <Link
+                href="/messages"
+                className="auth-top-icon-btn auth-message-btn"
+                aria-label="Open messages"
+                data-tooltip="Messages"
+                title="Messages"
               >
-                <UsersIcon className="ui-icon" />
-                {sessionUser.displayName ?? sessionUser.username}
-                {sessionUser.role === "mod" || sessionUser.role === "admin" ? (
-                  <span className="auth-role-badge">MOD</span>
-                ) : null}
-              </button>
-              <div className="auth-user-menu-panel">
-                <Link href="/profile" className="auth-user-menu-item" onClick={() => setUserMenuOpen(false)}>
-                  <UserIcon className="ui-icon" />
-                  Profile
-                </Link>
-                {sessionUser.role === "admin" ? (
-                  <Link href="/admin" className="auth-user-menu-item" onClick={() => setUserMenuOpen(false)}>
-                    <UsersIcon className="ui-icon" />
-                    Admin
-                  </Link>
-                ) : null}
-                <button className="auth-user-menu-item danger" type="button" onClick={handleLogout} disabled={busy}>
-                  {isLoggingOut ? "Logging out..." : "Logout"}
+                <ChatIcon className="ui-icon auth-top-icon-svg" />
+              </Link>
+              <Link
+                href="/notifications"
+                className={`auth-top-icon-btn auth-message-btn ${notificationPulse ? "notif-pulse" : ""}`}
+                aria-label="Open notifications"
+                data-tooltip="Notifications"
+                title="Notifications"
+              >
+                <BellIcon className="ui-icon auth-top-icon-svg" />
+                {notificationUnread > 0 ? <span className="auth-message-badge">{Math.min(notificationUnread, 99)}</span> : null}
+              </Link>
+
+              <div ref={userMenuRef} className={`auth-user-menu ${userMenuOpen ? "open" : ""}`}>
+                <button
+                  type="button"
+                  className="auth-pill auth-pill-trigger"
+                  onClick={() => setUserMenuOpen((curr) => !curr)}
+                  aria-expanded={userMenuOpen}
+                  aria-label="Open user menu"
+                >
+                  <UsersIcon className="ui-icon" />
+                  {sessionUser.displayName ?? sessionUser.username}
+                  {sessionUser.role === "mod" || sessionUser.role === "admin" ? (
+                    <span className="auth-role-badge">MOD</span>
+                  ) : null}
                 </button>
+                <div className="auth-user-menu-panel">
+                  <Link href="/profile" className="auth-user-menu-item" onClick={() => setUserMenuOpen(false)}>
+                    <UserIcon className="ui-icon" />
+                    Profile
+                  </Link>
+                  {sessionUser.role === "admin" ? (
+                    <Link href="/admin" className="auth-user-menu-item" onClick={() => setUserMenuOpen(false)}>
+                      <UsersIcon className="ui-icon" />
+                      Admin
+                    </Link>
+                  ) : null}
+                  <button className="auth-user-menu-item danger" type="button" onClick={handleLogout} disabled={busy}>
+                    {isLoggingOut ? "Logging out..." : "Logout"}
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           ) : (
             <>
               <button className="btn btn-ghost auth-btn" type="button" onClick={() => openAuthModal("register")} disabled={busy}>

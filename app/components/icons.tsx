@@ -144,9 +144,9 @@ export function CrownIcon(props: IconProps) {
 export function ChatIcon(props: IconProps) {
   return (
     <IconBase {...props}>
-      <path d="M4 5.5h16v10H8l-4 4v-14Z" />
-      <path d="M8 10h8" />
-      <path d="M8 13h5" />
+      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6A2.5 2.5 0 0 1 16.5 15H10l-4.5 4v-4H7.5A2.5 2.5 0 0 1 5 12.5v-6Z" />
+      <path d="M8.2 8.9h7.6" />
+      <path d="M8.2 11.8h5.1" />
     </IconBase>
   );
 }
@@ -227,6 +227,16 @@ export function InfoIcon(props: IconProps) {
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6" />
       <circle cx="12" cy="7.2" r=".7" />
+    </IconBase>
+  );
+}
+
+export function BellIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 4.3a5.2 5.2 0 0 1 5.2 5.2v3.7l1.7 2.2H5.1l1.7-2.2V9.5A5.2 5.2 0 0 1 12 4.3Z" />
+      <path d="M9.7 18a2.3 2.3 0 0 0 4.6 0" />
+      <path d="M12 3.1v1.2" />
     </IconBase>
   );
 }

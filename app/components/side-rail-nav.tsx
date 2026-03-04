@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_MULTIPLAYER_ROOM_KEY, REQUIRE_EXIT_EVENT } from "@/lib/multiplayer-room-lock";
-import { CrownIcon, HomeIcon, KeyboardIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
+import { BellIcon, ChatIcon, CrownIcon, HomeIcon, KeyboardIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { href: "/typing-advanced", label: "Advanced", icon: KeyboardIcon },
   { href: "/competition", label: "Competition", icon: CrownIcon },
   { href: "/multiplayer", label: "Multiplayer", icon: UsersIcon },
+  { href: "/messages", label: "Messages", icon: ChatIcon },
+  { href: "/notifications", label: "Notifications", icon: BellIcon },
   { href: "/profile", label: "My Profile", icon: UserIcon },
   { href: "/admin", label: "Admin", icon: UsersIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
@@ -26,6 +28,8 @@ export default function SideRailNav() {
   const navItems = useMemo(
     () =>
       NAV_ITEMS.filter((item) => {
+        if (item.href === "/messages") return Boolean(session);
+        if (item.href === "/notifications") return Boolean(session);
         if (item.href === "/profile") return Boolean(session);
         if (item.href === "/admin") return session?.role === "admin";
         return true;
@@ -140,6 +144,9 @@ export default function SideRailNav() {
               href={item.href}
               onClick={(event) => handleNavClick(event, item.href)}
               className={`side-rail-link ${isActive ? "active" : ""}`}
+              data-tooltip={item.label}
+              title={item.label}
+              aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon className="ui-icon" />

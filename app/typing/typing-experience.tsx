@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertIcon,
+  ChatIcon,
   CheckIcon,
   GaugeIcon,
   GlobeIcon,
@@ -275,6 +277,7 @@ function isSameLeaderboard(
 }
 
 export function TypingExperience({ variant = "normal" }: { variant?: TypingVariant }) {
+  const router = useRouter();
   const typingInputRef = useRef<HTMLInputElement>(null);
   const languageSelectRef = useRef<HTMLDivElement>(null);
   const difficulty: Difficulty = variant === "advanced" ? "hard" : "medium";
@@ -314,6 +317,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
   const [friendProfileData, setFriendProfileData] = useState<FriendProfileData | null>(null);
   const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
+  const [messageActionBusy, setMessageActionBusy] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
   const lastActivityAtRef = useRef<number | null>(null);
   const hasLoadedLeaderboardRef = useRef(false);
@@ -868,6 +872,37 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     }
   }
 
+  async function handleMessageFromProfile(): Promise<void> {
+    if (!friendProfileData?.user.id) return;
+
+    try {
+      setMessageActionBusy(true);
+      const response = await fetch("/api/messages/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: friendProfileData.user.id }),
+      });
+      const json = (await response.json()) as { data?: { id: string }; error?: string };
+      if (!response.ok || !json.data?.id) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("ff:require-login"));
+          throw new Error("Login first to send message.");
+        }
+        throw new Error(json.error ?? "Failed to open chat.");
+      }
+
+      setFriendProfileOpen(false);
+      setFriendProfileData(null);
+      setFriendProfileError(null);
+      setFriendProfileTags([]);
+      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
+    } catch (error) {
+      setFriendProfileError(error instanceof Error ? error.message : "Failed to open chat.");
+    } finally {
+      setMessageActionBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (status !== "finished" || currentReplayCheckpoints.length === 0) {
       return;
@@ -1333,18 +1368,29 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
                 <UsersIcon className="ui-icon ui-icon-accent" />
                 {(friendProfileData?.user.displayName ?? friendProfileData?.user.username ?? "Player")} Profile
               </h3>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  setFriendProfileOpen(false);
-                  setFriendProfileData(null);
-                  setFriendProfileError(null);
-                  setFriendProfileTags([]);
-                }}
-              >
-                Close
-              </button>
+              <div className="profile-friend-modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleMessageFromProfile()}
+                  disabled={messageActionBusy || !friendProfileData?.user.id}
+                >
+                  <ChatIcon className="ui-icon" />
+                  {messageActionBusy ? "Opening..." : "Message"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setFriendProfileOpen(false);
+                    setFriendProfileData(null);
+                    setFriendProfileError(null);
+                    setFriendProfileTags([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {friendProfileLoading ? <p className="kpi-label">Loading profile...</p> : null}

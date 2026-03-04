@@ -100,5 +100,19 @@ export async function POST(request: Request) {
     select: { id: true, createdAt: true },
   });
 
+  await prisma.notification.create({
+    data: {
+      userId: target.id,
+      type: "friend_request",
+      title: "New friend request",
+      body: `${session.username} sent you a friend request.`,
+      data: {
+        fromUserId: session.id,
+        fromUsername: session.username,
+        href: "/profile",
+      },
+    },
+  });
+
   return NextResponse.json({ data: created }, { status: 201 });
 }

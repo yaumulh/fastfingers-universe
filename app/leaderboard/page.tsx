@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { LANGUAGE_FLAGS, LANGUAGE_LABELS, type Difficulty, type LanguageCode } from "@/app/typing/word-banks";
 import { UserRankBadge } from "@/app/components/user-rank-badge";
 import { LanguageFlagIcon } from "@/app/components/language-flag-icon";
 import {
+  ChatIcon,
   GaugeIcon,
-  GlobeIcon,
   TimerIcon,
   TrophyIcon,
   UsersIcon,
@@ -48,6 +50,46 @@ type TypingResult = {
       label: string;
     }>;
   } | null;
+};
+type UserTag = {
+  code:
+    | "role_mod"
+    | "lang_daily_1"
+    | "lang_weekly_1"
+    | "lang_alltime_1"
+    | "adv_daily_1"
+    | "adv_weekly_1"
+    | "adv_alltime_1";
+  label: string;
+};
+type FriendProfileData = {
+  user: {
+    id: string;
+    username: string;
+    displayName?: string | null;
+    rating: number;
+    trustScore: number;
+    streakDays: number;
+  };
+  summary: {
+    totalTests: number;
+    avgWpm: number;
+    avgAccuracy: number;
+    bestWpm: number;
+    competitionJoined: number;
+    competitionWins: number;
+  };
+  recentCompetitions: Array<{
+    competitionId: string;
+    title: string;
+    language: string;
+    endedAt: string;
+    status: string;
+    bestWpm: number;
+    bestAccuracy: number;
+    bestResultAt: string | null;
+    isWinner: boolean;
+  }>;
 };
 
 type MultiplayerMatch = {
@@ -107,6 +149,7 @@ function dedupeTopTypingByUser(rows: TypingResult[]): TypingResult[] {
 }
 
 export default function LeaderboardPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<LeaderboardMode>("typing");
   const [period, setPeriod] = useState<Period>("all");
   const [language, setLanguage] = useState<LanguageCode | "all">("all");
@@ -117,6 +160,12 @@ export default function LeaderboardPage() {
   const [multiplayerData, setMultiplayerData] = useState<MultiplayerMatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [friendProfileOpen, setFriendProfileOpen] = useState(false);
+  const [friendProfileLoading, setFriendProfileLoading] = useState(false);
+  const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
+  const [friendProfileData, setFriendProfileData] = useState<FriendProfileData | null>(null);
+  const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
+  const [messageActionBusy, setMessageActionBusy] = useState(false);
 
   useEffect(() => {
     function applyFromSearch(search: string) {
@@ -255,6 +304,74 @@ export default function LeaderboardPage() {
     };
   }, [mode, query, sort]);
 
+  async function openFriendProfile(userId: string, rowLanguage: LanguageCode): Promise<void> {
+    setFriendProfileOpen(true);
+    setFriendProfileLoading(true);
+    setFriendProfileError(null);
+    setFriendProfileData(null);
+    setFriendProfileTags([]);
+
+    try {
+      const response = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
+      const json = (await response.json()) as { data?: FriendProfileData; error?: string };
+
+      if (!response.ok || !json.data) {
+        throw new Error(json.error ?? "Failed to load profile.");
+      }
+
+      setFriendProfileData(json.data);
+
+      try {
+        const query = new URLSearchParams({
+          language: rowLanguage,
+          names: json.data.user.username,
+        });
+        const tagResponse = await fetch(`/api/user-language-tags?${query.toString()}`, { cache: "no-store" });
+        if (tagResponse.ok) {
+          const tagJson = (await tagResponse.json()) as { data: Record<string, UserTag[]> };
+          setFriendProfileTags(tagJson.data?.[json.data.user.username] ?? []);
+        }
+      } catch {
+        setFriendProfileTags([]);
+      }
+    } catch (profileError) {
+      setFriendProfileError(profileError instanceof Error ? profileError.message : "Failed to load profile.");
+    } finally {
+      setFriendProfileLoading(false);
+    }
+  }
+
+  async function handleMessageFromProfile(): Promise<void> {
+    if (!friendProfileData?.user.id) return;
+
+    try {
+      setMessageActionBusy(true);
+      const response = await fetch("/api/messages/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: friendProfileData.user.id }),
+      });
+      const json = (await response.json()) as { data?: { id: string }; error?: string };
+      if (!response.ok || !json.data?.id) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("ff:require-login"));
+          throw new Error("Login first to send message.");
+        }
+        throw new Error(json.error ?? "Failed to open chat.");
+      }
+
+      setFriendProfileOpen(false);
+      setFriendProfileData(null);
+      setFriendProfileError(null);
+      setFriendProfileTags([]);
+      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
+    } catch (error) {
+      setFriendProfileError(error instanceof Error ? error.message : "Failed to open chat.");
+    } finally {
+      setMessageActionBusy(false);
+    }
+  }
+
   return (
     <main className="site-shell leaderboard-page">
       <section className="typing-header">
@@ -369,7 +486,17 @@ export default function LeaderboardPage() {
                   <span className="leaderboard-rank">#{index + 1}</span>
                   <div>
                     <p className="leaderboard-title-row">
-                      <span className="leaderboard-title">{row.user?.displayName ?? row.user?.username ?? "Guest"}</span>
+                      {row.user?.id ? (
+                        <button
+                          type="button"
+                          className="leaderboard-title typing-mini-name-btn"
+                          onClick={() => void openFriendProfile(row.user!.id, row.language)}
+                        >
+                          {row.user.displayName ?? row.user.username}
+                        </button>
+                      ) : (
+                        <span className="leaderboard-title">{row.user?.displayName ?? row.user?.username ?? "Guest"}</span>
+                      )}
                       {row.user?.tags && row.user.tags.length > 0 ? (
                         <>
                           <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[row.language]}>
@@ -386,14 +513,6 @@ export default function LeaderboardPage() {
                   <span className="leaderboard-metric-green">
                     <GaugeIcon className="ui-icon" />
                     {Math.round(row.wpm)} WPM
-                  </span>
-                  <span className="leaderboard-metric-green">
-                    <TrophyIcon className="ui-icon" />
-                    {Math.round(row.accuracy)}% Accuracy
-                  </span>
-                  <span className="leaderboard-metric-green">
-                    <GlobeIcon className="ui-icon" />
-                    {LANGUAGE_LABELS[row.language] ?? row.language}
                   </span>
                   <span className="leaderboard-metric-green">
                     <TimerIcon className="ui-icon" />
@@ -462,6 +581,124 @@ export default function LeaderboardPage() {
           </motion.div>
         ) : null}
       </section>
+      {friendProfileOpen ? (
+        <div
+          className="profile-friend-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={() => {
+            setFriendProfileOpen(false);
+            setFriendProfileData(null);
+            setFriendProfileError(null);
+            setFriendProfileTags([]);
+          }}
+        >
+          <section className="card glass profile-friend-modal" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="profile-friend-modal-head">
+              <h3 className="feature-title">
+                <UsersIcon className="ui-icon ui-icon-accent" />
+                {(friendProfileData?.user.displayName ?? friendProfileData?.user.username ?? "Player")} Profile
+              </h3>
+              <div className="profile-friend-modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleMessageFromProfile()}
+                  disabled={messageActionBusy || !friendProfileData?.user.id}
+                >
+                  <ChatIcon className="ui-icon" />
+                  {messageActionBusy ? "Opening..." : "Message"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setFriendProfileOpen(false);
+                    setFriendProfileData(null);
+                    setFriendProfileError(null);
+                    setFriendProfileTags([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {friendProfileLoading ? <p className="kpi-label">Loading profile...</p> : null}
+            {!friendProfileLoading && friendProfileError ? <p className="kpi-label">{friendProfileError}</p> : null}
+
+            {!friendProfileLoading && !friendProfileError && friendProfileData ? (
+              <div className="profile-friend-modal-body">
+                <section className="grid-3">
+                  <article className="card glass">
+                    <p className="kpi">
+                      <span className="profile-name-with-rank">
+                        <span>{friendProfileData.user.displayName ?? friendProfileData.user.username}</span>
+                        {friendProfileTags.length > 0 ? (
+                          <>
+                            <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[language === "all" ? "en" : language]}>
+                              <LanguageFlagIcon language={language === "all" ? "en" : language} />
+                            </span>
+                            <UserRankBadge tags={friendProfileTags} />
+                          </>
+                        ) : null}
+                      </span>
+                    </p>
+                    <p className="kpi-label">Player</p>
+                  </article>
+                  <article className="card glass">
+                    <p className="kpi">{friendProfileData.summary.bestWpm}</p>
+                    <p className="kpi-label">Best WPM</p>
+                  </article>
+                  <article className="card glass">
+                    <p className="kpi">{friendProfileData.summary.avgAccuracy}%</p>
+                    <p className="kpi-label">Average Accuracy</p>
+                  </article>
+                </section>
+                <section className="grid-3">
+                  <article className="card glass">
+                    <p className="kpi">{friendProfileData.summary.competitionJoined}</p>
+                    <p className="kpi-label">Competitions Joined</p>
+                  </article>
+                  <article className="card glass">
+                    <p className="kpi">{friendProfileData.summary.competitionWins}</p>
+                    <p className="kpi-label">Competition Wins</p>
+                  </article>
+                  <article className="card glass">
+                    <p className="kpi">{friendProfileData.user.rating}</p>
+                    <p className="kpi-label">Rating</p>
+                  </article>
+                </section>
+
+                <section className="card glass profile-trend">
+                  <h4 className="feature-title">
+                    <TrophyIcon className="ui-icon ui-icon-accent" />
+                    Recent Competitions
+                  </h4>
+                  {friendProfileData.recentCompetitions.length === 0 ? (
+                    <p className="kpi-label">No completed competition yet.</p>
+                  ) : (
+                    <div className="profile-trend-list">
+                      {friendProfileData.recentCompetitions.slice(0, 5).map((item) => (
+                        <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
+                          <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
+                            {item.title} |{" "}
+                            {item.bestWpm} WPM | {item.bestAccuracy}% ACC |{" "}
+                            {item.bestResultAt
+                              ? new Date(item.bestResultAt).toLocaleString()
+                              : new Date(item.endedAt).toLocaleString()}
+                            {item.isWinner ? " | Winner" : ""}
+                          </Link>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
 
     </main>
   );

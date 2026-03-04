@@ -20,7 +20,14 @@ export async function POST(request: Request) {
 
   const friendRequest = await prisma.friendRequest.findUnique({
     where: { id: body.requestId },
-    select: { id: true, toUserId: true, status: true },
+    select: {
+      id: true,
+      toUserId: true,
+      fromUserId: true,
+      status: true,
+      fromUser: { select: { username: true } },
+      toUser: { select: { username: true } },
+    },
   });
   if (!friendRequest) {
     return NextResponse.json({ error: "Request not found." }, { status: 404 });
@@ -40,6 +47,20 @@ export async function POST(request: Request) {
     },
     select: { id: true, status: true, respondedAt: true },
   });
+
+  if (body.action === "accept") {
+    await prisma.notification.create({
+      data: {
+        userId: friendRequest.fromUserId,
+        type: "friend_accept",
+        title: "Friend request accepted",
+        body: `${friendRequest.toUser?.username ?? "A user"} accepted your friend request.`,
+        data: {
+          href: "/profile",
+        },
+      },
+    });
+  }
 
   return NextResponse.json({ data: updated });
 }

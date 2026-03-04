@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertIcon,
   ArrowLeftIcon,
+  ChatIcon,
   CheckIcon,
   GaugeIcon,
   GlobeIcon,
@@ -94,7 +96,7 @@ type CompetitionItem = {
 };
 
 type ProfileData = {
-  user: { username: string; displayName?: string | null; rating: number; trustScore: number };
+  user: { id: string; username: string; displayName?: string | null; rating: number; trustScore: number };
   summary: {
     totalTests: number;
     avgWpm: number;
@@ -209,6 +211,7 @@ function buildLineRanges(words: string[]) {
 }
 
 export default function CompetitionRoomPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const roomId = params.id;
   const inputRef = useRef<HTMLInputElement>(null);
   const seededRoomRef = useRef<string | null>(null);
@@ -240,6 +243,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileTags, setProfileTags] = useState<UserTag[]>([]);
+  const [messageActionBusy, setMessageActionBusy] = useState(false);
 
   const selectedEndsAtMs = useMemo(() => (competition ? new Date(competition.endsAt).getTime() : 0), [competition]);
   const selectedEnded = useMemo(
@@ -576,6 +580,35 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     setProfileOpen(true);
   }
 
+  async function handleMessageFromProfile(): Promise<void> {
+    if (!profileData?.user.id) return;
+
+    try {
+      setMessageActionBusy(true);
+      const response = await fetch("/api/messages/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: profileData.user.id }),
+      });
+      const json = (await response.json()) as { data?: { id: string }; error?: string };
+      if (!response.ok || !json.data?.id) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent(REQUIRE_LOGIN_EVENT));
+          throw new Error("Login first to send message.");
+        }
+        throw new Error(json.error ?? "Failed to open chat.");
+      }
+
+      setProfileOpen(false);
+      setProfileTags([]);
+      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to open chat.");
+    } finally {
+      setMessageActionBusy(false);
+    }
+  }
+
   function startRun() {
     if (!competition || !joined || selectedEnded) return;
     const staticWords =
@@ -810,16 +843,27 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
                 <UsersIcon className="ui-icon ui-icon-accent" />
                 {(profileData.user.displayName ?? profileData.user.username)} Profile
               </h3>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => {
-                  setProfileOpen(false);
-                  setProfileTags([]);
-                }}
-              >
-                Close
-              </button>
+              <div className="profile-friend-modal-actions">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={() => void handleMessageFromProfile()}
+                  disabled={messageActionBusy || !profileData.user.id}
+                >
+                  <ChatIcon className="ui-icon" />
+                  {messageActionBusy ? "Opening..." : "Message"}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setProfileTags([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
             <div className="profile-friend-modal-body">
               <section className="grid-3">

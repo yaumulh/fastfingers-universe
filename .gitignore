@@ -3,6 +3,7 @@ node_modules
 *.log
 
 # Local environment variables
+.env
 .env.local
 
 # Prisma SQLite database files

@@ -631,7 +631,7 @@ export default function AdminPage() {
             <div className="admin-word-bank-head">
               <p className="kpi-label">
                 Upload JSON per language for <strong>Normal</strong> and <strong>Advanced</strong>. Supported format:
-                <code>["word1","word2"]</code> or <code>{`{"words":["word1","word2"]}`}</code>.
+                <code>[&quot;word1&quot;,&quot;word2&quot;]</code> or <code>{`{"words":["word1","word2"]}`}</code>.
               </p>
               <button className="btn btn-ghost" type="button" onClick={() => void loadWordBankSummary()} disabled={wordBankBusyKey !== null}>
                 <RefreshIcon className="ui-icon" />

@@ -1,0 +1,24 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 128" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="18" y1="10" x2="118" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A1530"/>
+      <stop offset="1" stop-color="#132D5C"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="34" y1="24" x2="100" y2="99" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35EEFF"/>
+      <stop offset="1" stop-color="#6D4DFF"/>
+    </linearGradient>
+    <linearGradient id="txt" x1="146" y1="24" x2="682" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7F3FF"/>
+      <stop offset="0.55" stop-color="#9BE6FF"/>
+      <stop offset="1" stop-color="#74FFD7"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#g1)"/>
+  <rect x="29" y="30" width="70" height="41" rx="11" stroke="url(#g2)" stroke-width="5"/>
+  <path d="M39 43h5M48 43h5M57 43h5M66 43h5M75 43h5" stroke="#93F5FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M39 53h50" stroke="#6FD8FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M57 89l14-20h-10l7-11" stroke="url(#g2)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="98" cy="25" r="5" fill="#35EEFF"/>
+  <text x="146" y="67" fill="url(#txt)" font-family="Outfit, Arial, sans-serif" font-size="45" font-weight="800" letter-spacing="-0.5">Fast-fingers Universe</text>
+</svg>

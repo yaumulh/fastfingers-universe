@@ -1,0 +1,89 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="90" y1="40" x2="1180" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07142E"/>
+      <stop offset="1" stop-color="#050C22"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="145" y1="86" x2="1150" y2="646" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D1F45" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#0A1737" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="desk" x1="160" y1="480" x2="1030" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12346B"/>
+      <stop offset="1" stop-color="#18498A"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="380" y1="350" x2="620" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#47E6FF"/>
+      <stop offset="1" stop-color="#4D8EFF"/>
+    </linearGradient>
+    <linearGradient id="monitor" x1="782" y1="180" x2="1092" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C2348"/>
+      <stop offset="1" stop-color="#13305D"/>
+    </linearGradient>
+    <linearGradient id="glowline" x1="220" y1="542" x2="980" y2="542" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22E7FF" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#74BFFF" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="soft" x="0" y="0" width="1280" height="720" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+    </filter>
+  </defs>
+
+  <rect x="12" y="12" width="1256" height="696" rx="28" fill="url(#bg)"/>
+  <rect x="12" y="12" width="1256" height="696" rx="28" stroke="#3B5F99" stroke-opacity="0.35" stroke-width="2"/>
+
+  <rect x="80" y="56" width="1120" height="608" rx="26" fill="url(#panel)"/>
+  <ellipse cx="990" cy="126" rx="180" ry="78" fill="#1BE7FF" fill-opacity="0.12"/>
+  <ellipse cx="272" cy="618" rx="220" ry="66" fill="#4A8FFF" fill-opacity="0.16"/>
+
+  <path d="M206 542H988" stroke="url(#glowline)" stroke-width="8" stroke-linecap="round"/>
+  <rect x="182" y="468" width="848" height="120" rx="24" fill="url(#desk)"/>
+  <rect x="182" y="468" width="848" height="120" rx="24" stroke="#3C5F98" stroke-opacity="0.65"/>
+
+  <g filter="url(#soft)">
+    <rect x="340" y="494" width="470" height="50" rx="15" fill="#081A3B"/>
+    <rect x="340" y="494" width="470" height="50" rx="15" stroke="#4D9FFF" stroke-opacity="0.58"/>
+    <path d="M360 519H790" stroke="#9EDBFF" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <rect x="772" y="170" width="336" height="284" rx="26" fill="url(#monitor)"/>
+  <rect x="772" y="170" width="336" height="284" rx="26" stroke="#4D76B8" stroke-opacity="0.5"/>
+  <rect x="806" y="210" width="260" height="16" rx="8" fill="#31E8FF" fill-opacity="0.55"/>
+  <rect x="806" y="246" width="188" height="13" rx="6.5" fill="#8BD7FF" fill-opacity="0.45"/>
+  <rect x="806" y="277" width="236" height="13" rx="6.5" fill="#8BD7FF" fill-opacity="0.36"/>
+  <rect x="806" y="308" width="156" height="13" rx="6.5" fill="#8BD7FF" fill-opacity="0.3"/>
+  <circle cx="1078" cy="424" r="8" fill="#25E8FF"/>
+
+  <ellipse cx="490" cy="318" rx="96" ry="114" fill="#F6C2A5"/>
+  <path d="M424 246C430 194 492 176 542 206C566 220 572 254 556 280C534 317 478 330 443 310C421 297 417 272 424 246Z" fill="#182B59"/>
+  <circle cx="470" cy="322" r="7" fill="#1A2242"/>
+  <path d="M462 364C475 380 510 381 527 366" stroke="#A7525E" stroke-width="7" stroke-linecap="round"/>
+
+  <path d="M378 450C396 376 444 348 502 348C579 348 624 394 642 474L646 502H370L378 450Z" fill="url(#shirt)"/>
+
+  <path d="M460 456C454 476 444 500 430 510C416 518 392 500 392 500" stroke="#F6C2A5" stroke-width="23" stroke-linecap="round"/>
+  <path d="M548 462C558 482 569 502 586 510C600 517 620 500 620 500" stroke="#F6C2A5" stroke-width="23" stroke-linecap="round"/>
+
+  <g opacity="0.95">
+    <path d="M652 98H740" stroke="#2CEAFF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M676 138H776" stroke="#2CEAFF" stroke-opacity="0.8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M700 178H798" stroke="#2CEAFF" stroke-opacity="0.62" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g fill="#8BDEFF" opacity="0.95">
+    <rect x="628" y="222" width="24" height="24" rx="6"/>
+    <rect x="592" y="258" width="18" height="18" rx="5"/>
+    <rect x="654" y="276" width="22" height="22" rx="6"/>
+    <rect x="616" y="306" width="16" height="16" rx="4"/>
+    <rect x="642" y="332" width="14" height="14" rx="4"/>
+  </g>
+
+  <g fill="#27E9FF" opacity="0.98">
+    <text x="633" y="239" font-family="monospace" font-size="20" font-weight="700">W</text>
+    <text x="594" y="271" font-family="monospace" font-size="16" font-weight="700">P</text>
+    <text x="658" y="291" font-family="monospace" font-size="18" font-weight="700">M</text>
+    <text x="618" y="317" font-family="monospace" font-size="14" font-weight="700">+</text>
+    <text x="644" y="342" font-family="monospace" font-size="12" font-weight="700">x2</text>
+  </g>
+</svg>

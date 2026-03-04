@@ -1,0 +1,46 @@
+{
+  "name": "fastfingers-app",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "socket:dev": "node socket-server/server.js",
+    "build": "npm run db:generate:pg && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:generate:pg": "prisma generate --schema prisma/schema.postgres.prisma",
+    "db:push": "prisma db push",
+    "db:push:pg": "prisma db push --schema prisma/schema.postgres.prisma",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@prisma/client": "^5.14.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.2.10",
+    "ioredis": "^5.5.0",
+    "next": "14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.7.5",
+    "tailwind-merge": "^2.3.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.38",
+    "prisma": "^5.14.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
+  }
+}

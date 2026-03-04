@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  username    String       @unique
+  displayName String?      @unique
+  displayNameUpdatedAt DateTime?
+  role        String       @default("user")
+  isActive    Boolean      @default(true)
+  passwordHash String?
+  email       String?      @unique
+  rating      Int          @default(1000)
+  trustScore  Int          @default(100)
+  streakDays  Int          @default(0)
+  lastTestAt  DateTime?
+  createdAt   DateTime     @default(now())
+  testResults TestResult[]
+  achievements UserAchievement[]
+  dailyMissions UserDailyMission[]
+  sentFriendRequests FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+  challengeLinks ChallengeLink[]
+  challengeAttempts ChallengeAttempt[]
+  hostedCompetitions Competition[] @relation("CompetitionHost")
+  competitionParticipants CompetitionParticipant[]
+}
+
+model TestResult {
+  id         String      @id @default(cuid())
+  wpm        Float
+  accuracy   Float
+  duration   Int
+  wordCount  Int
+  mistakes   Int
+  language   String
+  difficulty String
+  createdAt  DateTime    @default(now())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([language, difficulty, createdAt])
+  @@index([language, difficulty, duration, createdAt])
+  @@index([language, difficulty, duration, wpm, accuracy])
+}
+
+model MultiplayerMatch {
+  id           String                 @id @default(cuid())
+  roomId       String
+  startedAt    DateTime?
+  finishedAt   DateTime
+  winnerId     String?
+  winnerName   String?
+  createdAt    DateTime               @default(now())
+  participants MultiplayerParticipant[]
+
+  @@index([finishedAt])
+  @@index([createdAt])
+}
+
+model MultiplayerParticipant {
+  id         String           @id @default(cuid())
+  matchId    String
+  playerId   String
+  playerName String
+  progress   Float
+  wpm        Float
+  finishedAt DateTime?
+  isWinner   Boolean          @default(false)
+  match      MultiplayerMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, isWinner])
+}
+
+model UserAchievement {
+  id         String   @id @default(cuid())
+  userId     String
+  code       String
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+  @@index([userId, unlockedAt])
+}
+
+model UserDailyMission {
+  id         String   @id @default(cuid())
+  userId     String
+  dayKey     String
+  missionKey String
+  progress   Int      @default(0)
+  target     Int
+  completed  Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayKey, missionKey])
+  @@index([userId, dayKey])
+}
+
+model FriendRequest {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  fromUser    User     @relation("FriendRequestSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("FriendRequestReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, status, createdAt])
+}
+
+model ChallengeLink {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  creatorId   String?
+  mode        String
+  language    String
+  durationSec Int
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  creator     User?    @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  attempts    ChallengeAttempt[]
+
+  @@index([createdAt])
+}
+
+model ChallengeAttempt {
+  id          String        @id @default(cuid())
+  challengeId String
+  userId      String?
+  username    String
+  wpm         Float
+  accuracy    Float
+  createdAt   DateTime      @default(now())
+  challenge   ChallengeLink @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([challengeId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Competition {
+  id           String                   @id @default(cuid())
+  title        String
+  language     String
+  mode         String
+  hostUserId   String
+  hostEditUsed Boolean                  @default(false)
+  startsAt     DateTime                 @default(now())
+  endsAt       DateTime
+  status       String                   @default("active")
+  winnerUserId String?
+  winnerName   String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  host         User                     @relation("CompetitionHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  participants CompetitionParticipant[]
+
+  @@index([status, endsAt])
+  @@index([createdAt])
+  @@index([hostUserId, createdAt])
+}
+
+model CompetitionParticipant {
+  id            String      @id @default(cuid())
+  competitionId String
+  userId        String
+  joinedAt      DateTime    @default(now())
+  bestWpm       Float       @default(0)
+  bestAccuracy  Float       @default(0)
+  bestResultAt  DateTime?
+  testsCount    Int         @default(0)
+  isWinner      Boolean     @default(false)
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, userId])
+  @@index([competitionId, bestWpm])
+  @@index([competitionId, testsCount, bestWpm, bestAccuracy])
+  @@index([userId, joinedAt])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+

@@ -1,0 +1,10 @@
+node_modules
+.next
+*.log
+
+# Local environment variables
+.env.local
+
+# Prisma SQLite database files
+prisma/dev.db
+prisma/dev.db-journal

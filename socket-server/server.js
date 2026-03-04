@@ -32,8 +32,9 @@ function loadEnvFile() {
 
 loadEnvFile();
 
-const PORT = Number(process.env.SOCKET_PORT || 3001);
+const PORT = Number(process.env.PORT || process.env.SOCKET_PORT || 3001);
 const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const EXTRA_ALLOWED_ORIGINS = process.env.SOCKET_ALLOWED_ORIGINS || "";
 const ROOM_CAPACITY = 4;
 const DISCONNECT_GRACE_MS = 45000;
 const MAX_WPM = 280;
@@ -46,6 +47,17 @@ const DEFAULT_DURATION_SEC = 60;
 const LANGUAGE_OPTIONS = ["en", "id", "es", "fr", "de", "pt", "it", "ru", "zh", "ja"];
 const DEFAULT_LANGUAGE = "en";
 const REDIS_URL = process.env.REDIS_URL || "";
+
+function parseAllowedOrigins() {
+  const base = [ALLOWED_ORIGIN, "http://127.0.0.1:3000", "http://localhost:3000"];
+  const extra = EXTRA_ALLOWED_ORIGINS
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return [...new Set([...base, ...extra])];
+}
+
+const ALLOWED_ORIGINS = parseAllowedOrigins();
 
 const rooms = new Map();
 const disconnectTimers = new Map();
@@ -366,7 +378,7 @@ function handleDisconnect(io, socketId) {
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: [ALLOWED_ORIGIN, "http://127.0.0.1:3000"],
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"],
   },
   transports: ["websocket", "polling"],
@@ -767,7 +779,8 @@ io.on("connection", (socket) => {
 async function startServer() {
   await setupRedisAdapterIfEnabled();
   httpServer.listen(PORT, () => {
-    console.log(`FastFingers Socket server running on http://localhost:${PORT}`);
+    console.log(`FastFingers Socket server running on port ${PORT}`);
+    console.log(`Socket CORS origins: ${ALLOWED_ORIGINS.join(", ")}`);
   });
 }
 

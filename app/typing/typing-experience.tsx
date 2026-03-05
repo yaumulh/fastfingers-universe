@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertIcon,
-  ChatIcon,
   CheckIcon,
   GaugeIcon,
   GlobeIcon,
@@ -29,6 +28,7 @@ import {
 } from "./word-banks";
 import { UserRankBadge } from "../components/user-rank-badge";
 import { LanguageFlagIcon } from "../components/language-flag-icon";
+import { FriendProfileModal } from "../components/friend-profile-modal";
 
 type TestStatus = "idle" | "running" | "finished";
 type WordState = "pending" | "correct" | "incorrect";
@@ -1350,124 +1350,24 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
         )}
       </AnimatePresence>
 
-      {friendProfileOpen ? (
-        <div
-          className="profile-friend-modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={() => {
-            setFriendProfileOpen(false);
-            setFriendProfileData(null);
-            setFriendProfileError(null);
-            setFriendProfileTags([]);
-          }}
-        >
-          <section className="card glass profile-friend-modal" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="profile-friend-modal-head">
-              <h3 className="feature-title">
-                <UsersIcon className="ui-icon ui-icon-accent" />
-                {(friendProfileData?.user.displayName ?? friendProfileData?.user.username ?? "Player")} Profile
-              </h3>
-              <div className="profile-friend-modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void handleMessageFromProfile()}
-                  disabled={messageActionBusy || !friendProfileData?.user.id}
-                >
-                  <ChatIcon className="ui-icon" />
-                  {messageActionBusy ? "Opening..." : "Message"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setFriendProfileOpen(false);
-                    setFriendProfileData(null);
-                    setFriendProfileError(null);
-                    setFriendProfileTags([]);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {friendProfileLoading ? <p className="kpi-label">Loading profile...</p> : null}
-            {!friendProfileLoading && friendProfileError ? <p className="kpi-label">{friendProfileError}</p> : null}
-
-            {!friendProfileLoading && !friendProfileError && friendProfileData ? (
-              <div className="profile-friend-modal-body">
-                <section className="grid-3">
-                  <article className="card glass">
-                    <p className="kpi">
-                      <span className="profile-name-with-rank">
-                        <span>{friendProfileData.user.displayName ?? friendProfileData.user.username}</span>
-                        {friendProfileTags.length > 0 ? (
-                          <>
-                            <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[language]}>
-                              <LanguageFlagIcon language={language} />
-                            </span>
-                            <UserRankBadge tags={friendProfileTags} />
-                          </>
-                        ) : null}
-                      </span>
-                    </p>
-                    <p className="kpi-label">Player</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.bestWpm}</p>
-                    <p className="kpi-label">Best WPM</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.avgAccuracy}%</p>
-                    <p className="kpi-label">Average Accuracy</p>
-                  </article>
-                </section>
-                <section className="grid-3">
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.competitionJoined}</p>
-                    <p className="kpi-label">Competitions Joined</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.competitionWins}</p>
-                    <p className="kpi-label">Competition Wins</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.user.rating}</p>
-                    <p className="kpi-label">Rating</p>
-                  </article>
-                </section>
-
-                <section className="card glass profile-trend">
-                  <h4 className="feature-title">
-                    <TrophyIcon className="ui-icon ui-icon-accent" />
-                    Recent Competitions
-                  </h4>
-                  {friendProfileData.recentCompetitions.length === 0 ? (
-                    <p className="kpi-label">No completed competition yet.</p>
-                  ) : (
-                    <div className="profile-trend-list">
-                      {friendProfileData.recentCompetitions.slice(0, 5).map((item) => (
-                        <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
-                          <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
-                            {item.title} |{" "}
-                            {item.bestWpm} WPM | {item.bestAccuracy}% ACC |{" "}
-                            {item.bestResultAt
-                              ? new Date(item.bestResultAt).toLocaleString()
-                              : new Date(item.endedAt).toLocaleString()}
-                            {item.isWinner ? " | Winner" : ""}
-                          </Link>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </div>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
+      <FriendProfileModal
+        open={friendProfileOpen}
+        loading={friendProfileLoading}
+        error={friendProfileError}
+        data={friendProfileData}
+        tags={friendProfileTags}
+        languageForTags={language}
+        messageBusy={messageActionBusy}
+        onMessage={() => {
+          void handleMessageFromProfile();
+        }}
+        onClose={() => {
+          setFriendProfileOpen(false);
+          setFriendProfileData(null);
+          setFriendProfileError(null);
+          setFriendProfileTags([]);
+        }}
+      />
     </main>
   );
 }

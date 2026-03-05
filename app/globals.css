@@ -2927,6 +2927,186 @@ a {
   text-underline-offset: 2px;
 }
 
+.runs-chart-shell {
+  margin-top: 0.72rem;
+  border-radius: 14px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: linear-gradient(160deg, rgba(8, 16, 34, 0.74), rgba(8, 16, 34, 0.48));
+  padding: 0.62rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.runs-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.runs-chart-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.runs-chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid rgba(157, 191, 255, 0.28);
+  border-radius: 999px;
+  padding: 0.14rem;
+  background: rgba(10, 20, 42, 0.62);
+}
+
+.runs-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid rgba(157, 191, 255, 0.26);
+  border-radius: 999px;
+  padding: 0.14rem;
+  background: rgba(10, 20, 42, 0.6);
+}
+
+.runs-mode-btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #aec2df;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.22rem 0.5rem;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease, opacity 120ms ease;
+}
+
+.runs-mode-btn:hover {
+  color: #dff3ff;
+  border-color: rgba(157, 191, 255, 0.34);
+}
+
+.runs-mode-btn.active {
+  color: #032032;
+  border-color: rgba(0, 231, 255, 0.54);
+  background: linear-gradient(120deg, #8ff7ff, #62d6ff);
+}
+
+.runs-mode-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.runs-toggle-btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #aac2e4;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.22rem 0.46rem;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.runs-toggle-btn:hover {
+  color: #dff3ff;
+  border-color: rgba(157, 191, 255, 0.34);
+}
+
+.runs-toggle-btn.active {
+  color: #032032;
+  border-color: rgba(0, 231, 255, 0.54);
+  background: linear-gradient(120deg, #8ff7ff, #62d6ff);
+}
+
+.runs-chart-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(157, 191, 255, 0.34);
+  background: rgba(14, 26, 54, 0.62);
+  color: #cfe4ff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.18rem 0.4rem;
+}
+
+.runs-chart-chip.accent {
+  border-color: rgba(0, 231, 255, 0.5);
+  background: rgba(0, 231, 255, 0.12);
+  color: #9df6ff;
+}
+
+.runs-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.runs-axis {
+  stroke: rgba(157, 191, 255, 0.24);
+  stroke-width: 1;
+}
+
+.runs-acc-line {
+  fill: none;
+  stroke: url(#runs-line-grad);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.94;
+  filter: drop-shadow(0 0 6px rgba(167, 130, 255, 0.34));
+}
+
+.runs-acc-dot {
+  fill: #d9c4ff;
+  stroke: rgba(22, 32, 57, 0.95);
+  stroke-width: 1.4;
+}
+
+.runs-x-label {
+  font-size: 11px;
+  fill: #9eb6da;
+  font-weight: 600;
+}
+
+.runs-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.72rem;
+  color: #adc0df;
+}
+
+.runs-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.runs-legend-swatch {
+  width: 18px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.runs-legend-swatch.wpm {
+  background: linear-gradient(90deg, #7ef6ff, #4d8dff);
+}
+
+.runs-legend-swatch.acc {
+  background: linear-gradient(90deg, #e5d3ff, #b06fff);
+}
+
 .profile-social-row {
   margin-top: 0.7rem;
   display: flex;
@@ -3079,6 +3259,16 @@ a {
 .profile-friend-modal .profile-name-with-rank .user-rank-flag-badge,
 .profile-friend-modal .profile-name-with-rank .user-rank-badge {
   transform: none;
+}
+
+.profile-friend-modal .grid-3 {
+  position: relative;
+  z-index: 1;
+}
+
+.profile-friend-modal .grid-3:first-child:has(.user-rank-badge:hover),
+.profile-friend-modal .grid-3:first-child:has(.user-rank-badge.open) {
+  z-index: 2147483600;
 }
 
 .leaderboard-filters {

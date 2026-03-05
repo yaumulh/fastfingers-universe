@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertIcon,
   ArrowLeftIcon,
-  ChatIcon,
   CheckIcon,
   GaugeIcon,
   GlobeIcon,
@@ -20,6 +19,7 @@ import {
 } from "@/app/components/icons";
 import { UserRankBadge } from "@/app/components/user-rank-badge";
 import { LanguageFlagIcon } from "@/app/components/language-flag-icon";
+import { FriendProfileModal } from "@/app/components/friend-profile-modal";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
 import {
   BANK_SIZE_PER_LEVEL,
@@ -105,6 +105,12 @@ type ProfileData = {
     competitionJoined: number;
     competitionWins: number;
   };
+  trend: Array<{
+    date: string;
+    wpm: number;
+    accuracy: number;
+    mode?: "normal" | "advanced";
+  }>;
   recentCompetitions: Array<{
     competitionId: string;
     title: string;
@@ -823,99 +829,22 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
         </div>
       )}
 
-      {profileOpen && profileData ? (
-        <div
-          className="profile-friend-modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={() => {
-            setProfileOpen(false);
-            setProfileTags([]);
-          }}
-        >
-          {/** competition language fallback keeps tag UI safe during transient states */}
-          {(() => {
-            const profileLanguage = competition?.language ?? "en";
-            return (
-          <section className="card glass profile-friend-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="profile-friend-modal-head">
-              <h3 className="feature-title">
-                <UsersIcon className="ui-icon ui-icon-accent" />
-                {(profileData.user.displayName ?? profileData.user.username)} Profile
-              </h3>
-              <div className="profile-friend-modal-actions">
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  onClick={() => void handleMessageFromProfile()}
-                  disabled={messageActionBusy || !profileData.user.id}
-                >
-                  <ChatIcon className="ui-icon" />
-                  {messageActionBusy ? "Opening..." : "Message"}
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    setProfileTags([]);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="profile-friend-modal-body">
-              <section className="grid-3">
-                <article className="card glass">
-                  <p className="kpi">
-                    <span className="profile-name-with-rank">
-                      <span>{profileData.user.displayName ?? profileData.user.username}</span>
-                      {profileTags.length > 0 ? (
-                        <>
-                          <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[profileLanguage]}>
-                            <LanguageFlagIcon language={profileLanguage} />
-                          </span>
-                          <UserRankBadge tags={profileTags} />
-                        </>
-                      ) : null}
-                    </span>
-                  </p>
-                  <p className="kpi-label">Player</p>
-                </article>
-                <article className="card glass"><p className="kpi">{profileData.summary.bestWpm}</p><p className="kpi-label">Best WPM</p></article>
-                <article className="card glass"><p className="kpi">{profileData.summary.avgAccuracy}%</p><p className="kpi-label">Average Accuracy</p></article>
-              </section>
-              <section className="grid-3">
-                <article className="card glass"><p className="kpi">{profileData.summary.competitionJoined}</p><p className="kpi-label">Competitions Joined</p></article>
-                <article className="card glass"><p className="kpi">{profileData.summary.competitionWins}</p><p className="kpi-label">Competition Wins</p></article>
-                <article className="card glass"><p className="kpi">{profileData.user.rating}</p><p className="kpi-label">Rating</p></article>
-              </section>
-              <section className="card glass profile-trend">
-                <h4 className="feature-title"><TrophyIcon className="ui-icon ui-icon-accent" />Recent Competitions</h4>
-                {profileData.recentCompetitions.length === 0 ? (
-                  <p className="kpi-label">No completed competition yet.</p>
-                ) : (
-                  <div className="profile-trend-list">
-                    {profileData.recentCompetitions.slice(0, 5).map((item) => (
-                      <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
-                        <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
-                          {item.title} |{" "}
-                          {item.bestWpm} WPM | {item.bestAccuracy}% ACC |{" "}
-                          {item.bestResultAt ? new Date(item.bestResultAt).toLocaleString() : new Date(item.endedAt).toLocaleString()}
-                          {item.isWinner ? " | Winner" : ""}
-                        </Link>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </div>
-          </section>
-            );
-          })()}
-        </div>
-      ) : null}
+      <FriendProfileModal
+        open={profileOpen}
+        loading={false}
+        error={null}
+        data={profileData}
+        tags={profileTags}
+        languageForTags={competition?.language ?? "en"}
+        messageBusy={messageActionBusy}
+        onMessage={() => {
+          void handleMessageFromProfile();
+        }}
+        onClose={() => {
+          setProfileOpen(false);
+          setProfileTags([]);
+        }}
+      />
     </main>
   );
 }

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChatIcon, GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
-import { LanguageFlagIcon } from "../components/language-flag-icon";
-import { UserRankBadge } from "../components/user-rank-badge";
+import { GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
+import { FriendProfileModal } from "../components/friend-profile-modal";
+import { RecentRunsChart } from "../components/recent-runs-chart";
 import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
 
 type UserTag = {
@@ -56,6 +56,7 @@ type ProfileResponse = {
       date: string;
       wpm: number;
       accuracy: number;
+      mode: "normal" | "advanced";
     }>;
     recentCompetitions: Array<{
       competitionId: string;
@@ -117,6 +118,7 @@ export default function ProfilePage() {
       date: string;
       wpm: number;
       accuracy: number;
+      mode: "normal" | "advanced";
     }>;
     recentCompetitions: Array<{
       competitionId: string;
@@ -597,21 +599,9 @@ export default function ProfilePage() {
             <section className="card glass profile-trend">
               <h2 className="feature-title">
                 <GaugeIcon className="ui-icon ui-icon-accent" />
-                Recent Trend
+                Latest Runs
               </h2>
-              {data.trend.length === 0 ? (
-                <p className="kpi-label">No run data yet.</p>
-              ) : (
-                <div className="profile-trend-list">
-                  {[...data.trend].slice(-5).reverse().map((point, index) => (
-                    <article key={`${point.date}-${index}`} className="profile-trend-item">
-                      <p className="kpi-label profile-trend-line">
-                        {new Date(point.date).toLocaleString()} | {point.wpm} WPM | {point.accuracy}% ACC
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              )}
+              <RecentRunsChart runs={data.trend} />
             </section>
 
             <section className="card glass profile-trend">
@@ -724,172 +714,24 @@ export default function ProfilePage() {
         </>
       ) : null}
 
-      {friendProfileOpen ? (
-        <div
-          className="profile-friend-modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={() => {
-            setFriendProfileOpen(false);
-            setFriendProfileData(null);
-            setFriendProfileError(null);
-            setFriendProfileTags([]);
-          }}
-        >
-          <section className="card glass profile-friend-modal" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="profile-friend-modal-head">
-              <h3 className="feature-title">
-                <UsersIcon className="ui-icon ui-icon-accent" />
-                {(friendProfileData?.user.displayName ?? friendProfileData?.user.username ?? "Player")} Profile
-              </h3>
-              <div className="profile-friend-modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void handleMessageFromProfile()}
-                  disabled={messageActionBusy || !friendProfileData?.user.id}
-                >
-                  <ChatIcon className="ui-icon" />
-                  {messageActionBusy ? "Opening..." : "Message"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setFriendProfileOpen(false);
-                    setFriendProfileData(null);
-                    setFriendProfileError(null);
-                    setFriendProfileTags([]);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {friendProfileLoading ? <p className="kpi-label">Loading friend profile...</p> : null}
-            {!friendProfileLoading && friendProfileError ? (
-              <p className="kpi-label">Error: {friendProfileError}</p>
-            ) : null}
-
-            {!friendProfileLoading && !friendProfileError && friendProfileData ? (
-              <div className="profile-friend-modal-body">
-                <section className="grid-3">
-                  <article className="card glass">
-                    <p className="kpi">
-                      <span className="profile-name-with-rank">
-                        <span>{friendProfileData.user.displayName ?? friendProfileData.user.username}</span>
-                        {friendProfileTags.length > 0 ? (
-                          <>
-                            <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[tagLanguage]}>
-                              <LanguageFlagIcon language={tagLanguage} />
-                            </span>
-                            <UserRankBadge tags={friendProfileTags} />
-                          </>
-                        ) : null}
-                      </span>
-                    </p>
-                    <p className="kpi-label">Player</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.user.rating}</p>
-                    <p className="kpi-label">Rating</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.user.trustScore}%</p>
-                    <p className="kpi-label">Trust Score</p>
-                  </article>
-                </section>
-
-                <section className="grid-3">
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.bestWpm}</p>
-                    <p className="kpi-label">Best WPM</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.avgWpm}</p>
-                    <p className="kpi-label">Average WPM</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.avgAccuracy}%</p>
-                    <p className="kpi-label">Average Accuracy</p>
-                  </article>
-                </section>
-
-                <section className="grid-3">
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.competitionJoined}</p>
-                    <p className="kpi-label">Competitions Joined</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">{friendProfileData.summary.competitionWins}</p>
-                    <p className="kpi-label">Competition Wins</p>
-                  </article>
-                  <article className="card glass">
-                    <p className="kpi">
-                      {friendProfileData.summary.competitionJoined > 0
-                        ? Math.round(
-                            (friendProfileData.summary.competitionWins /
-                              friendProfileData.summary.competitionJoined) *
-                              100,
-                          )
-                        : 0}
-                      %
-                    </p>
-                    <p className="kpi-label">Competition Win Rate</p>
-                  </article>
-                </section>
-
-                <div className="profile-recent-grid">
-                  <section className="card glass profile-trend">
-                    <h4 className="feature-title">
-                      <GaugeIcon className="ui-icon ui-icon-accent" />
-                      Latest Runs
-                    </h4>
-                    {friendProfileData.trend.length === 0 ? (
-                      <p className="kpi-label">No run data yet.</p>
-                    ) : (
-                      <div className="profile-trend-list">
-                        {friendProfileData.trend.slice(0, 5).map((point, index) => (
-                          <article key={`${point.date}-${index}`} className="profile-trend-item">
-                            <p className="kpi-label profile-trend-line">
-                              {new Date(point.date).toLocaleString()} | {point.wpm} WPM | {point.accuracy}% ACC
-                            </p>
-                          </article>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="card glass profile-trend">
-                    <h4 className="feature-title">
-                      <TrophyIcon className="ui-icon ui-icon-accent" />
-                      Recent Competitions
-                    </h4>
-                    {friendProfileData.recentCompetitions.length === 0 ? (
-                      <p className="kpi-label">No completed competition yet.</p>
-                    ) : (
-                      <div className="profile-trend-list">
-                        {friendProfileData.recentCompetitions.slice(0, 5).map((item) => (
-                          <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
-                            <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
-                              {item.title} | {item.bestWpm} WPM | {item.bestAccuracy}% ACC
-                              {item.isWinner ? " | Winner" : ""} |{" "}
-                              {item.bestResultAt
-                                ? new Date(item.bestResultAt).toLocaleString()
-                                : new Date(item.endedAt).toLocaleString()}
-                            </Link>
-                          </article>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                </div>
-              </div>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
+      <FriendProfileModal
+        open={friendProfileOpen}
+        loading={friendProfileLoading}
+        error={friendProfileError}
+        data={friendProfileData}
+        tags={friendProfileTags}
+        languageForTags={tagLanguage}
+        messageBusy={messageActionBusy}
+        onMessage={() => {
+          void handleMessageFromProfile();
+        }}
+        onClose={() => {
+          setFriendProfileOpen(false);
+          setFriendProfileData(null);
+          setFriendProfileError(null);
+          setFriendProfileTags([]);
+        }}
+      />
     </main>
   );
 }

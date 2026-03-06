@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTIVE_MULTIPLAYER_ROOM_KEY, REQUIRE_EXIT_EVENT } from "@/lib/multiplayer-room-lock";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
-import { BellIcon, ChatIcon, EyeIcon, EyeOffIcon, UsersIcon, UserIcon } from "./icons";
+import { BellIcon, ChatIcon, EyeIcon, EyeOffIcon, SparkIcon, UsersIcon, UserIcon } from "./icons";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -21,6 +21,13 @@ const NAV_LINKS = [
   { href: "/admin", label: "Admin" },
 ];
 const BRANDING_CACHE_KEY = "fastfingers:branding-logos";
+const THEME_STORAGE_KEY = "fastfingers:theme";
+const THEME_OPTIONS = [
+  { value: "nebula", label: "Nebula" },
+  { value: "ocean", label: "Ocean" },
+  { value: "carbon", label: "Carbon" },
+] as const;
+type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
 
 type SessionUser = {
   id?: string;
@@ -71,6 +78,7 @@ export default function GlobalHeader() {
   const router = useRouter();
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -92,7 +100,26 @@ export default function GlobalHeader() {
   const [brandingLogos, setBrandingLogos] = useState<Record<string, string | null>>({});
   const [notificationUnread, setNotificationUnread] = useState(0);
   const [notificationPulse, setNotificationPulse] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemeValue>("nebula");
   const previousUnreadRef = useRef(0);
+
+  function applyTheme(nextTheme: ThemeValue): void {
+    const normalized: ThemeValue = THEME_OPTIONS.some((item) => item.value === nextTheme) ? nextTheme : "nebula";
+    setTheme(normalized);
+    if (typeof document !== "undefined") {
+      if (normalized === "nebula") {
+        document.documentElement.removeAttribute("data-theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", normalized);
+      }
+    }
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, normalized);
+    } catch {
+      // Ignore storage failure.
+    }
+  }
 
   useEffect(() => {
     try {
@@ -211,10 +238,24 @@ export default function GlobalHeader() {
       if (!userMenuRef.current?.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (!themeMenuRef.current?.contains(event.target as Node)) {
+        setThemeMenuOpen(false);
+      }
     }
 
     window.addEventListener("mousedown", onPointerDown);
     return () => window.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
+      const nextTheme = THEME_OPTIONS.some((item) => item.value === raw) ? (raw as ThemeValue) : "nebula";
+      applyTheme(nextTheme);
+    } catch {
+      applyTheme("nebula");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -511,6 +552,35 @@ export default function GlobalHeader() {
           ))}
         </nav>
         <div className="nav-actions">
+          <div ref={themeMenuRef} className={`theme-menu ${themeMenuOpen ? "open" : ""}`}>
+            <button
+              type="button"
+              className="auth-top-icon-btn theme-menu-trigger"
+              aria-label="Open theme menu"
+              data-tooltip="Theme"
+              title="Theme"
+              onClick={() => setThemeMenuOpen((current) => !current)}
+            >
+              <SparkIcon className="ui-icon auth-top-icon-svg" />
+            </button>
+            <div className="theme-menu-panel">
+              <p className="theme-menu-title">Choose Theme</p>
+              {THEME_OPTIONS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={`theme-option ${theme === item.value ? "active" : ""}`}
+                  onClick={() => {
+                    applyTheme(item.value);
+                    setThemeMenuOpen(false);
+                  }}
+                >
+                  <span className={`theme-swatch ${item.value}`} aria-hidden="true" />
+                  <span className="theme-option-label">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           {sessionUser?.username ? (
             <>
               <Link

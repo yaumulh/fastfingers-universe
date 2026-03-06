@@ -153,11 +153,12 @@ export async function POST(request: Request) {
     },
   });
 
-  await updateAfterTypingResult({
+  const progress = await updateAfterTypingResult({
     userId: sessionUser.id,
     wpm: body.wpm,
     accuracy: body.accuracy,
     mistakes,
+    duration,
   });
 
   await invalidateCachePrefixAsync("test-results:get:");
@@ -166,5 +167,5 @@ export async function POST(request: Request) {
   await invalidateCachePrefixAsync("competitions:get");
   await invalidateCachePrefixAsync("competition:get:");
 
-  return NextResponse.json({ data: created }, { status: 201 });
+  return NextResponse.json({ data: created, progress }, { status: 201 });
 }

@@ -18,6 +18,7 @@ model User {
   email       String?      @unique
   rating      Int          @default(1000)
   trustScore  Int          @default(100)
+  totalXp     Int          @default(0)
   streakDays  Int          @default(0)
   lastTestAt  DateTime?
   createdAt   DateTime     @default(now())

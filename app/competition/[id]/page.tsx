@@ -634,7 +634,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     setRunFeedback(null);
     setIsResultModalOpen(false);
     lastActivityAtRef.current = null;
-    setStatus("running");
+    setStatus("idle");
     focusTypingInput();
   }
 

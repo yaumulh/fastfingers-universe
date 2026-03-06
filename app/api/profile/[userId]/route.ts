@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-session";
+import { getLevelProgress } from "@/lib/user-level";
 
 type RouteContext = {
   params: {
@@ -28,6 +29,7 @@ export async function GET(_request: Request, context: RouteContext) {
         displayName: true,
         rating: true,
         trustScore: true,
+        totalXp: true,
         streakDays: true,
       },
     }),
@@ -111,6 +113,7 @@ export async function GET(_request: Request, context: RouteContext) {
   return NextResponse.json({
     data: {
       user: target,
+      level: getLevelProgress(target.totalXp),
       summary: {
         totalTests,
         avgWpm: Math.round(aggregate._avg.wpm ?? 0),

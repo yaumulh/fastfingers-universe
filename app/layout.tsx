@@ -43,6 +43,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var key='fastfingers:theme';var t=localStorage.getItem(key);if(!t||t==='nebula'){document.documentElement.removeAttribute('data-theme');return;}if(t==='ocean'||t==='carbon'){document.documentElement.setAttribute('data-theme',t);}else{document.documentElement.removeAttribute('data-theme');}}catch(e){document.documentElement.removeAttribute('data-theme');}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${outfit.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
       >

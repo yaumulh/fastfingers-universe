@@ -26,7 +26,22 @@ type FriendProfileData = {
     displayName?: string | null;
     rating: number;
     trustScore: number;
+    totalXp?: number;
+    level?: {
+      level: number;
+      totalXp: number;
+      currentLevelXp: number;
+      nextLevelXp: number;
+      progressPct: number;
+    };
     streakDays?: number;
+  };
+  level?: {
+    level: number;
+    totalXp: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+    progressPct: number;
   };
   summary: {
     totalTests: number;
@@ -129,6 +144,13 @@ export function FriendProfileModal({
                     ) : null}
                   </span>
                 </p>
+                {data.level || data.user.level ? (
+                  <p className="kpi-label">
+                    Level {(data.level?.level ?? data.user.level?.level) ?? 1} •{" "}
+                    {(data.level?.currentLevelXp ?? data.user.level?.currentLevelXp) ?? 0}/
+                    {(data.level?.nextLevelXp ?? data.user.level?.nextLevelXp) ?? 100} XP
+                  </p>
+                ) : null}
                 <p className="kpi-label">Player</p>
               </article>
               <article className="card glass">
@@ -215,4 +237,3 @@ export function FriendProfileModal({
     </div>
   );
 }
-

@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { getLevelProgress, getTypingXpGain } from "@/lib/user-level";
 
 type TypingPayload = {
   userId: string;
   wpm: number;
   accuracy: number;
   mistakes: number;
+  duration: number;
 };
 
 type MultiplayerPayload = {
@@ -72,13 +74,14 @@ export async function updateAfterTypingResult(payload: TypingPayload) {
   const now = new Date();
   const dayKey = dayKeyFor(now);
   const yesterdayKey = yesterdayKeyFor(now);
+  const xpGained = getTypingXpGain(payload);
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, lastTestAt: true, streakDays: true, trustScore: true },
+    select: { id: true, lastTestAt: true, streakDays: true, trustScore: true, totalXp: true },
   });
   if (!user) {
-    return;
+    return null;
   }
 
   const lastDayKey = user.lastTestAt ? dayKeyFor(user.lastTestAt) : null;
@@ -89,13 +92,15 @@ export async function updateAfterTypingResult(payload: TypingPayload) {
         ? user.streakDays + 1
         : 1;
 
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: payload.userId },
     data: {
       lastTestAt: now,
       streakDays: nextStreak,
       trustScore: Math.max(20, Math.min(100, user.trustScore + (payload.accuracy >= 95 ? 1 : 0))),
+      totalXp: { increment: xpGained },
     },
+    select: { totalXp: true },
   });
 
   await ensureMissionRows(payload.userId, dayKey);
@@ -142,6 +147,15 @@ export async function updateAfterTypingResult(payload: TypingPayload) {
   if (nextStreak >= 3) {
     await addAchievement(payload.userId, ACHIEVEMENTS.STREAK_3);
   }
+
+  const before = getLevelProgress(user.totalXp);
+  const after = getLevelProgress(updatedUser.totalXp);
+
+  return {
+    xpGained,
+    ...after,
+    leveledUp: after.level > before.level,
+  };
 }
 
 export async function updateAfterMultiplayerMatch(payload: MultiplayerPayload) {

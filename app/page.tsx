@@ -275,6 +275,11 @@ export default function HomePage() {
         if (!cancelled) {
           setSnapshot(json.data);
         }
+      } catch {
+        if (!cancelled) {
+          // Keep previous snapshot on transient network/API failure.
+          setSnapshot((current) => current);
+        }
       } finally {
         if (!cancelled) {
           setSnapshotLoading(false);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-session";
 import { missionCatalog } from "@/lib/user-progress";
 import { prisma } from "@/lib/prisma";
+import { getLevelProgress } from "@/lib/user-level";
 
 function dayKeyFor(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -110,7 +111,9 @@ export async function GET() {
           : null,
         rating: user.rating,
         trustScore: user.trustScore,
+        totalXp: user.totalXp,
         streakDays: user.streakDays,
+        level: getLevelProgress(user.totalXp),
       },
       summary: {
         totalTests,

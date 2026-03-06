@@ -29,6 +29,7 @@ import {
 import { UserRankBadge } from "../components/user-rank-badge";
 import { LanguageFlagIcon } from "../components/language-flag-icon";
 import { FriendProfileModal } from "../components/friend-profile-modal";
+import { getTypingXpGain } from "@/lib/user-level";
 
 type TestStatus = "idle" | "running" | "finished";
 type WordState = "pending" | "correct" | "incorrect";
@@ -110,6 +111,16 @@ type FriendProfileData = {
     bestResultAt: string | null;
     isWinner: boolean;
   }>;
+};
+
+type SaveProgress = {
+  xpGained: number;
+  level: number;
+  totalXp: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  progressPct: number;
+  leveledUp: boolean;
 };
 
 const MAX_CHARS_PER_LINE_NORMAL = 108;
@@ -301,6 +312,9 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   const [typedWordsCount, setTypedWordsCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveProgress, setSaveProgress] = useState<SaveProgress | null>(null);
+  const [animatedXp, setAnimatedXp] = useState(0);
+  const animatedXpRef = useRef(0);
   const [hasSavedCurrentRun, setHasSavedCurrentRun] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [authUser, setAuthUser] = useState<SessionUser | null>(null);
@@ -330,6 +344,13 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   );
   const progress = clampPercent((currentWordIndex / words.length) * 100);
   const showResultModal = status === "finished" && timeLeft === 0;
+  const estimatedXp = getTypingXpGain({
+    wpm,
+    accuracy,
+    mistakes: Math.max(totalMistakes, 0),
+    duration,
+  });
+  const xpTarget = authUser ? Math.max(0, saveProgress?.xpGained ?? estimatedXp) : 0;
   const languageOptions = Object.entries(LANGUAGE_LABELS) as [LanguageCode, string][];
   const typingMode = variant === "advanced" ? "advanced" : "normal";
   const leaderboardHref = `/leaderboard?mode=typing&period=${topRankingPeriod}&sort=top&language=${language}&typingMode=${typingMode}&duration=${leaderboardDuration}`;
@@ -685,6 +706,40 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   }, [ghostReplay, status]);
 
   useEffect(() => {
+    if (!showResultModal || !authUser) {
+      animatedXpRef.current = 0;
+      setAnimatedXp(0);
+      return;
+    }
+
+    let rafId = 0;
+    const from = animatedXpRef.current;
+    const to = xpTarget;
+    if (to === from) {
+      return;
+    }
+
+    const startAt = performance.now();
+    const durationMs = 520;
+
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startAt) / durationMs);
+      const eased = 1 - (1 - progress) ** 3;
+      const value = Math.round(from + (to - from) * eased);
+      animatedXpRef.current = value;
+      setAnimatedXp(value);
+      if (progress < 1) {
+        rafId = window.requestAnimationFrame(animate);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(animate);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [showResultModal, authUser, xpTarget]);
+
+  useEffect(() => {
     if (status !== "finished" || isSaving || hasSavedCurrentRun) {
       return;
     }
@@ -692,6 +747,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     if (!authUser) {
       setHasSavedCurrentRun(true);
       setSaveError(null);
+      setSaveProgress(null);
       return;
     }
 
@@ -700,6 +756,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     if (isAfkRun) {
       setHasSavedCurrentRun(true);
       setSaveError("AFK detected: result not saved.");
+      setSaveProgress(null);
       return;
     }
 
@@ -726,12 +783,17 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
         if (!response.ok) {
           throw new Error("Failed to save result");
         }
+        const json = (await response.json()) as {
+          progress?: SaveProgress | null;
+        };
         if (!cancelled) {
+          setSaveProgress(json.progress ?? null);
           setHasSavedCurrentRun(true);
         }
       } catch (error) {
         if (!cancelled) {
           setSaveError(error instanceof Error ? error.message : "Failed to save result");
+          setSaveProgress(null);
           setHasSavedCurrentRun(true);
         }
       } finally {
@@ -774,6 +836,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     setTotalMistakes(0);
     setTypedWordsCount(0);
     setSaveError(null);
+    setSaveProgress(null);
     setHasSavedCurrentRun(false);
     setCurrentReplayCheckpoints([]);
     setGhostProgress(0);
@@ -1321,16 +1384,39 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
                   <p className="kpi">{Math.max(totalMistakes, 0)}</p>
                   <p className="kpi-label">Mistakes</p>
                 </article>
+                {authUser ? (
+                  <article>
+                    <p className="kpi">+{animatedXp}</p>
+                    <p className="kpi-label">{saveProgress ? "XP" : "Est. XP"}</p>
+                  </article>
+                ) : null}
               </div>
+
+              <AnimatePresence>
+                {authUser && saveProgress?.leveledUp ? (
+                  <motion.div
+                    className="result-level-up-banner"
+                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: [1, 1.015, 1] }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.38, ease: "easeOut" }}
+                  >
+                    <TrophyIcon className="ui-icon" />
+                    <span>Level Up! You reached Level {saveProgress.level}</span>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
 
               <p className="kpi-label">
                 {!authUser
                   ? "Guest mode: result is not saved to leaderboard. Login to sync progress."
                   : isSaving
-                    ? "Saving result..."
+                    ? `Saving result... (Estimated +${estimatedXp} XP)`
                     : saveError
                       ? `Save error: ${saveError}`
-                      : "Result saved to leaderboard."}
+                      : saveProgress
+                        ? `Result saved • +${saveProgress.xpGained} XP • Level ${saveProgress.level}${saveProgress.leveledUp ? " (Level Up!)" : ""}`
+                        : "Result saved to leaderboard."}
               </p>
 
               <div className="result-modal-actions">

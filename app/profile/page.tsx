@@ -30,7 +30,15 @@ type ProfileResponse = {
       displayNameChangeAvailableAt?: string | null;
       rating: number;
       trustScore: number;
+      totalXp: number;
       streakDays: number;
+      level: {
+        level: number;
+        totalXp: number;
+        currentLevelXp: number;
+        nextLevelXp: number;
+        progressPct: number;
+      };
     };
     summary: {
       totalTests: number;
@@ -105,6 +113,21 @@ export default function ProfilePage() {
       rating: number;
       trustScore: number;
       streakDays: number;
+      totalXp?: number;
+      level?: {
+        level: number;
+        totalXp: number;
+        currentLevelXp: number;
+        nextLevelXp: number;
+        progressPct: number;
+      };
+    };
+    level?: {
+      level: number;
+      totalXp: number;
+      currentLevelXp: number;
+      nextLevelXp: number;
+      progressPct: number;
     };
     summary: {
       totalTests: number;
@@ -465,6 +488,12 @@ export default function ProfilePage() {
                 </button>
               </div>
               <p className="kpi-label profile-username-linklike">@{data.user.username}</p>
+              <p className="kpi-label">
+                Level <strong>{data.user.level.level}</strong> • {data.user.level.currentLevelXp}/{data.user.level.nextLevelXp} XP
+              </p>
+              <div className="typing-progress-track">
+                <div className="typing-progress-bar" style={{ width: `${data.user.level.progressPct}%` }} />
+              </div>
               {displayNameEditOpen ? (
                 <div className="profile-social-row">
                   <input

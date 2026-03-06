@@ -24,6 +24,7 @@ export default function SideRailNav() {
   const pathname = usePathname();
   const [session, setSession] = useState<{ id: string; role?: "user" | "mod" | "admin" } | null>(null);
   const [brandingLogos, setBrandingLogos] = useState<Record<string, string | null>>({});
+  const [brandingReady, setBrandingReady] = useState(false);
 
   const navItems = useMemo(
     () =>
@@ -78,13 +79,26 @@ export default function SideRailNav() {
     async function loadBranding() {
       try {
         const response = await fetch("/api/branding", { cache: "no-store" });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (!cancelled) {
+            setBrandingReady(true);
+          }
+          return;
+        }
         const json = (await response.json()) as { data?: { logos?: Record<string, string | null> } };
         if (!cancelled) {
           setBrandingLogos(json.data?.logos ?? {});
+          setBrandingReady(true);
         }
       } catch {
-        if (!cancelled) setBrandingLogos({});
+        if (!cancelled) {
+          setBrandingLogos({});
+          setBrandingReady(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setBrandingReady(true);
+        }
       }
     }
 
@@ -128,6 +142,8 @@ export default function SideRailNav() {
       <Link href="/" className="side-rail-brand" aria-label="Fast-fingers Universe home">
         {sideRailIcon ? (
           <img src={sideRailIcon} alt="" className="side-rail-brand-logo" />
+        ) : !brandingReady ? (
+          <span className="side-rail-brand-logo side-rail-brand-logo-placeholder" aria-hidden="true" />
         ) : (
           <Image src="/images/ff-transparent.png" alt="" width={28} height={28} className="side-rail-brand-logo" />
         )}

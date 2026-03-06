@@ -46,7 +46,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var key='fastfingers:theme';var t=localStorage.getItem(key);if(!t||t==='nebula'){document.documentElement.removeAttribute('data-theme');return;}if(t==='ocean'||t==='carbon'){document.documentElement.setAttribute('data-theme',t);}else{document.documentElement.removeAttribute('data-theme');}}catch(e){document.documentElement.removeAttribute('data-theme');}})();`,
+            __html: `(function(){try{var key='fastfingers:theme';var t=localStorage.getItem(key);var ok={ocean:1,carbon:1,aurora:1,midnight:1,crimson:1,emerald:1,violet:1};if(!t||t==='nebula'){document.documentElement.removeAttribute('data-theme');return;}if(ok[t]){document.documentElement.setAttribute('data-theme',t);}else{document.documentElement.removeAttribute('data-theme');}}catch(e){document.documentElement.removeAttribute('data-theme');}})();`,
           }}
         />
       </head>

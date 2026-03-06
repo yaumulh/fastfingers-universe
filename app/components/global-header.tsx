@@ -26,6 +26,11 @@ const THEME_OPTIONS = [
   { value: "nebula", label: "Nebula" },
   { value: "ocean", label: "Ocean" },
   { value: "carbon", label: "Carbon" },
+  { value: "aurora", label: "Aurora" },
+  { value: "midnight", label: "Midnight" },
+  { value: "crimson", label: "Crimson" },
+  { value: "emerald", label: "Emerald" },
+  { value: "violet", label: "Violet" },
 ] as const;
 type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
 
@@ -98,11 +103,13 @@ export default function GlobalHeader() {
   const [displayNameBusy, setDisplayNameBusy] = useState(false);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [brandingLogos, setBrandingLogos] = useState<Record<string, string | null>>({});
+  const [brandingReady, setBrandingReady] = useState(false);
   const [notificationUnread, setNotificationUnread] = useState(0);
   const [notificationPulse, setNotificationPulse] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeValue>("nebula");
   const previousUnreadRef = useRef(0);
+  const uiModalOpen = authModalOpen || displayNameModalOpen;
 
   function applyTheme(nextTheme: ThemeValue): void {
     const normalized: ThemeValue = THEME_OPTIONS.some((item) => item.value === nextTheme) ? nextTheme : "nebula";
@@ -128,6 +135,7 @@ export default function GlobalHeader() {
         const parsed = JSON.parse(raw) as Record<string, string | null>;
         if (parsed && typeof parsed === "object") {
           setBrandingLogos(parsed);
+          setBrandingReady(true);
         }
       }
     } catch {
@@ -144,6 +152,7 @@ export default function GlobalHeader() {
         if (!cancelled) {
           const next = json.data?.logos ?? {};
           setBrandingLogos(next);
+          setBrandingReady(true);
           try {
             window.localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(next));
           } catch {
@@ -151,7 +160,14 @@ export default function GlobalHeader() {
           }
         }
       } catch {
-        if (!cancelled) setBrandingLogos({});
+        if (!cancelled) {
+          setBrandingLogos({});
+          setBrandingReady(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setBrandingReady(true);
+        }
       }
     }
 
@@ -214,6 +230,20 @@ export default function GlobalHeader() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.body.setAttribute("data-ff-ui-modal-open", uiModalOpen ? "1" : "0");
+    }
+    window.dispatchEvent(new CustomEvent("ff:ui-modal-state", { detail: { open: uiModalOpen } }));
+
+    return () => {
+      if (typeof document !== "undefined") {
+        document.body.setAttribute("data-ff-ui-modal-open", "0");
+      }
+      window.dispatchEvent(new CustomEvent("ff:ui-modal-state", { detail: { open: false } }));
+    };
+  }, [uiModalOpen]);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -525,6 +555,8 @@ export default function GlobalHeader() {
         <Link href="/" className="brand-wrap" aria-label="Fast-fingers Universe home">
           {headerWordmarkLogo ? (
             <img src={headerWordmarkLogo} alt="Fast-fingers Universe" className="brand-wordmark" />
+          ) : !brandingReady ? (
+            <span className="brand-wordmark brand-wordmark-placeholder" aria-hidden="true" />
           ) : (
             <>
               <span className="brand-logo-shell" aria-hidden="true">

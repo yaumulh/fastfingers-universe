@@ -222,6 +222,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const inputRef = useRef<HTMLInputElement>(null);
   const seededRoomRef = useRef<string | null>(null);
   const lastActivityAtRef = useRef<number | null>(null);
+  const prevBlockingModalRef = useRef(false);
 
   const [authUser, setAuthUser] = useState<SessionUser | null>(null);
   const [competition, setCompetition] = useState<CompetitionItem | null>(null);
@@ -250,6 +251,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileTags, setProfileTags] = useState<UserTag[]>([]);
   const [messageActionBusy, setMessageActionBusy] = useState(false);
+  const [uiModalOpen, setUiModalOpen] = useState(false);
 
   const selectedEndsAtMs = useMemo(() => (competition ? new Date(competition.endsAt).getTime() : 0), [competition]);
   const selectedEnded = useMemo(
@@ -287,6 +289,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const accuracy = Math.round((correctChars / Math.max(typedChars, 1)) * 100);
   const progress = Math.min(Math.max((currentWordIndex / Math.max(words.length, 1)) * 100, 0), 100);
   const showResultModal = status === "finished" && timeLeft === 0 && isResultModalOpen;
+  const hasBlockingModal = uiModalOpen || profileOpen || showResultModal;
 
   const { ranges, wordToLine } = useMemo(() => buildLineRanges(words), [words]);
   const lineIndex = useMemo(() => (ranges.length ? wordToLine[Math.min(currentWordIndex, words.length - 1)] ?? 0 : 0), [ranges.length, wordToLine, currentWordIndex, words.length]);
@@ -294,10 +297,39 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const visibleRanges = useMemo(() => ranges.slice(visibleStartLine, visibleStartLine + VISIBLE_LINES), [ranges, visibleStartLine]);
 
   function focusTypingInput() {
+    if (hasBlockingModal) return;
     window.requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
   }
+
+  useEffect(() => {
+    const open = document.body.getAttribute("data-ff-ui-modal-open") === "1";
+    setUiModalOpen(open);
+
+    function onModalState(event: Event): void {
+      const custom = event as CustomEvent<{ open?: boolean }>;
+      setUiModalOpen(Boolean(custom.detail?.open));
+    }
+
+    window.addEventListener("ff:ui-modal-state", onModalState as EventListener);
+    return () => {
+      window.removeEventListener("ff:ui-modal-state", onModalState as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasBlockingModal) return;
+    inputRef.current?.blur();
+  }, [hasBlockingModal]);
+
+  useEffect(() => {
+    const wasBlocking = prevBlockingModalRef.current;
+    if (wasBlocking && !hasBlockingModal && !selectedEnded && joined && status !== "finished") {
+      focusTypingInput();
+    }
+    prevBlockingModalRef.current = hasBlockingModal;
+  }, [hasBlockingModal, selectedEnded, joined, status]);
 
   const loadCompetition = useCallback(async () => {
     const res = await fetch(`/api/competitions/${roomId}`, { cache: "no-store" });
@@ -339,7 +371,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     function onPointerUp(event: PointerEvent) {
       if (!competition || selectedEnded || !joined) return;
       if (status === "finished") return;
-      if (profileOpen) return;
+      if (hasBlockingModal) return;
 
       const target = event.target as HTMLElement | null;
       if (target?.closest(".modern-select-panel")) return;
@@ -350,7 +382,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
 
     window.addEventListener("pointerup", onPointerUp);
     return () => window.removeEventListener("pointerup", onPointerUp);
-  }, [competition, selectedEnded, joined, status, profileOpen]);
+  }, [competition, selectedEnded, joined, status, hasBlockingModal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -550,8 +582,9 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     if (busy) return;
     if (!competition || selectedEnded || !joined) return;
     if (status === "finished") return;
+    if (hasBlockingModal) return;
     focusTypingInput();
-  }, [busy, competition, selectedEnded, joined, status]);
+  }, [busy, competition, selectedEnded, joined, status, hasBlockingModal]);
 
   useEffect(() => {
     if (!selectedEnded) return;
@@ -748,7 +781,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
                       }
                     }}
                     placeholder="Type active word then press Space..."
-                    disabled={status === "finished" || selectedEnded}
+                    disabled={status === "finished" || selectedEnded || hasBlockingModal}
                   />
                 </div>
                 {runFeedback ? <p className="kpi-label">{runFeedback}</p> : null}

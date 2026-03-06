@@ -246,6 +246,7 @@ export default function MultiplayerPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatListRef = useRef<HTMLDivElement>(null);
   const languageRef = useRef<HTMLDivElement>(null);
+  const prevModalBlockedRef = useRef(false);
 
   const [connected, setConnected] = useState(false);
   const [name, setName] = useState("Player");
@@ -270,6 +271,7 @@ export default function MultiplayerPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [roomLanguage, setRoomLanguage] = useState<LanguageCode>("en");
   const [openLanguage, setOpenLanguage] = useState(false);
+  const [uiModalOpen, setUiModalOpen] = useState(false);
   const [userTagsByLanguage, setUserTagsByLanguage] = useState<
     Partial<Record<LanguageCode, Record<string, UserTag[]>>>
   >({});
@@ -487,6 +489,38 @@ export default function MultiplayerPage() {
   }, [room?.id, room?.chat.length]);
 
   useEffect(() => {
+    const open = document.body.getAttribute("data-ff-ui-modal-open") === "1";
+    setUiModalOpen(open);
+
+    function onModalState(event: Event): void {
+      const custom = event as CustomEvent<{ open?: boolean }>;
+      setUiModalOpen(Boolean(custom.detail?.open));
+    }
+
+    window.addEventListener("ff:ui-modal-state", onModalState as EventListener);
+    return () => {
+      window.removeEventListener("ff:ui-modal-state", onModalState as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!uiModalOpen) return;
+    inputRef.current?.blur();
+  }, [uiModalOpen]);
+
+  useEffect(() => {
+    const modalActive =
+      uiModalOpen ||
+      document.body.getAttribute("data-ff-ui-modal-open") === "1" ||
+      Boolean(document.querySelector(".auth-modal-backdrop, .auth-modal"));
+    const wasBlocked = prevModalBlockedRef.current;
+    if (wasBlocked && !modalActive && room?.status === "racing" && self?.connected && !self?.blocked) {
+      window.requestAnimationFrame(() => inputRef.current?.focus());
+    }
+    prevModalBlockedRef.current = modalActive;
+  }, [uiModalOpen, room?.status, self?.connected, self?.blocked]);
+
+  useEffect(() => {
     if (raceStatus !== "racing") {
       setInputWord("");
       setCurrentWordIndex(0);
@@ -505,8 +539,17 @@ export default function MultiplayerPage() {
     setTotalTypedChars(0);
     setTotalMistakes(0);
     setBattleWpm(0);
+    if (!uiModalOpen) {
+      window.requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [raceRoomId, raceStatus, raceWordCount, uiModalOpen]);
+
+  useEffect(() => {
+    if (uiModalOpen) return;
+    if (!room || room.status !== "racing") return;
+    if (!self?.connected || self?.blocked) return;
     window.requestAnimationFrame(() => inputRef.current?.focus());
-  }, [raceRoomId, raceStatus, raceWordCount]);
+  }, [uiModalOpen, room, self?.connected, self?.blocked]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1212,7 +1255,7 @@ export default function MultiplayerPage() {
                 placeholder="Type active word then press Space..."
                 spellCheck={false}
                 autoFocus
-                disabled={!self?.connected || self?.blocked || room.status !== "racing"}
+                disabled={uiModalOpen || !self?.connected || self?.blocked || room.status !== "racing"}
               />
             </section>
           ) : null}

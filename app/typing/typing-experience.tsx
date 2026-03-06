@@ -332,9 +332,11 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   const [friendProfileData, setFriendProfileData] = useState<FriendProfileData | null>(null);
   const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
   const [messageActionBusy, setMessageActionBusy] = useState(false);
+  const [uiModalOpen, setUiModalOpen] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
   const lastActivityAtRef = useRef<number | null>(null);
   const hasLoadedLeaderboardRef = useRef(false);
+  const prevBlockingModalRef = useRef(false);
 
   const elapsedSeconds = duration - timeLeft;
   const elapsedSecondsSafe = Math.max(elapsedSeconds, 1);
@@ -344,6 +346,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   );
   const progress = clampPercent((currentWordIndex / words.length) * 100);
   const showResultModal = status === "finished" && timeLeft === 0;
+  const hasBlockingModal = uiModalOpen || friendProfileOpen || showResultModal;
   const estimatedXp = getTypingXpGain({
     wpm,
     accuracy,
@@ -619,6 +622,34 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   }, [difficulty, language, leaderboardDuration, topRankingPeriod]);
 
   useEffect(() => {
+    const open = document.body.getAttribute("data-ff-ui-modal-open") === "1";
+    setUiModalOpen(open);
+
+    function onModalState(event: Event): void {
+      const custom = event as CustomEvent<{ open?: boolean }>;
+      setUiModalOpen(Boolean(custom.detail?.open));
+    }
+
+    window.addEventListener("ff:ui-modal-state", onModalState as EventListener);
+    return () => {
+      window.removeEventListener("ff:ui-modal-state", onModalState as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasBlockingModal) return;
+    typingInputRef.current?.blur();
+  }, [hasBlockingModal]);
+
+  useEffect(() => {
+    const wasBlocking = prevBlockingModalRef.current;
+    if (wasBlocking && !hasBlockingModal && status !== "finished") {
+      focusTypingInput();
+    }
+    prevBlockingModalRef.current = hasBlockingModal;
+  }, [hasBlockingModal, status]);
+
+  useEffect(() => {
     function onPointerDown(event: MouseEvent): void {
       if (!languageSelectRef.current?.contains(event.target as Node)) {
         setIsLanguageOpen(false);
@@ -641,7 +672,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
 
   useEffect(() => {
     function onPointerUp(event: PointerEvent): void {
-      if (status === "finished") {
+      if (status === "finished" || hasBlockingModal) {
         return;
       }
 
@@ -659,7 +690,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     return () => {
       window.removeEventListener("pointerup", onPointerUp);
     };
-  }, [status]);
+  }, [status, hasBlockingModal]);
 
   useEffect(() => {
     if (currentWordIndex >= words.length && status === "running") {
@@ -845,6 +876,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   }
 
   function focusTypingInput(): void {
+    if (hasBlockingModal) return;
     window.requestAnimationFrame(() => {
       typingInputRef.current?.focus();
     });
@@ -1250,7 +1282,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
           placeholder="Type the active word then press Space..."
           spellCheck={false}
           autoFocus
-          disabled={status === "finished"}
+          disabled={status === "finished" || hasBlockingModal}
         />
       </section>
 

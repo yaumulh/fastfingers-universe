@@ -123,6 +123,7 @@ export default function HomePage() {
     seasonTopWpm: 0,
   });
   const [brandingLogos, setBrandingLogos] = useState<Record<string, string | null>>({});
+  const [brandingReady, setBrandingReady] = useState(false);
   const animatedSnapshotRef = useRef(animatedSnapshot);
 
   useEffect(() => {
@@ -157,6 +158,7 @@ export default function HomePage() {
         const parsed = JSON.parse(raw) as Record<string, string | null>;
         if (parsed && typeof parsed === "object") {
           setBrandingLogos(parsed);
+          setBrandingReady(true);
         }
       }
     } catch {
@@ -173,6 +175,7 @@ export default function HomePage() {
         if (!cancelled) {
           const next = json.data?.logos ?? {};
           setBrandingLogos(next);
+          setBrandingReady(true);
           try {
             window.localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(next));
           } catch {
@@ -180,7 +183,14 @@ export default function HomePage() {
           }
         }
       } catch {
-        if (!cancelled) setBrandingLogos({});
+        if (!cancelled) {
+          setBrandingLogos({});
+          setBrandingReady(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setBrandingReady(true);
+        }
       }
     }
 
@@ -396,6 +406,8 @@ export default function HomePage() {
               <div className="hero-illustration-wrap">
                 {homeHeroLogo ? (
                   <img src={homeHeroLogo} alt="Fast-fingers Universe logo" className="hero-illustration hero-illustration-logo" />
+                ) : !brandingReady ? (
+                  <div className="hero-illustration hero-illustration-placeholder" aria-hidden="true" />
                 ) : (
                   <Image
                     src="/images/typing-cartoon-fast.svg"
@@ -415,23 +427,27 @@ export default function HomePage() {
               <GaugeIcon className="ui-icon ui-icon-accent" />
               Live Snapshot
             </h2>
-            <div className="grid-3 live-snapshot-grid">
-              {stats.map((item) => {
-                const Icon = item.icon;
-                return (
-                <article key={item.label} className="card glass snapshot-card">
-                  <div className="snapshot-card-top">
-                    <span className="snapshot-badge">Live</span>
-                    <span className="ui-icon-badge snapshot-icon-badge">
-                      <Icon className="ui-icon" />
-                    </span>
-                  </div>
-                  <p className="kpi snapshot-value">{item.value}</p>
-                  <p className="kpi-label snapshot-label">{item.label}</p>
-                </article>
-                );
-              })}
-            </div>
+            <article className="card glass snapshot-card snapshot-card-unified">
+              <div className="snapshot-card-headline">
+                <span className="snapshot-badge">Live</span>
+              </div>
+              <div className="live-snapshot-grid">
+                {stats.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.label} className="snapshot-stat">
+                      <div className="snapshot-card-top">
+                        <span className="ui-icon-badge snapshot-icon-badge">
+                          <Icon className="ui-icon" />
+                        </span>
+                      </div>
+                      <p className="kpi snapshot-value">{item.value}</p>
+                      <p className="kpi-label snapshot-label">{item.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
             <article className="card glass home-global-language-tabs" aria-label="Top global language ranking">
               <h3 className="feature-title">
                 <GlobeIcon className="ui-icon ui-icon-accent" />

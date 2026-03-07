@@ -1833,24 +1833,26 @@ a {
 }
 
 .snapshot-card-unified {
+  position: relative;
   display: grid;
-  gap: 0.9rem;
+  gap: 0.62rem;
   overflow: hidden;
-  padding: 1.05rem 1.1rem 1rem;
+  padding: 0.9rem 1.1rem 0.95rem;
   background:
     linear-gradient(180deg, rgba(12, 24, 48, 0.72), rgba(8, 16, 34, 0.58)),
     radial-gradient(420px 120px at 0% 0%, rgba(77, 141, 255, 0.08), transparent 70%);
 }
 
 .snapshot-card-headline {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  position: absolute;
+  top: 0.58rem;
+  right: 0.78rem;
+  z-index: 2;
 }
 
 .snapshot-stat {
   min-width: 0;
-  padding: 0.22rem 0.2rem 0.24rem 0.2rem;
+  padding: 0.14rem 0.2rem 0.18rem 0.2rem;
   display: grid;
   gap: 0.14rem;
   position: relative;
@@ -1878,6 +1880,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  min-height: 30px;
 }
 
 .snapshot-badge {
@@ -1902,7 +1905,7 @@ a {
 }
 
 .snapshot-value {
-  margin-top: 0.52rem;
+  margin-top: 0.3rem;
   font-size: clamp(2rem, 2.2vw, 2.5rem);
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -2655,6 +2658,717 @@ a {
 
 .typing-result p {
   margin: 0.65rem 0 0;
+}
+
+.practice-page {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.practice-controls {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.practice-course-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.practice-course-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.practice-course-item {
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(8, 16, 34, 0.78);
+  color: var(--text-primary);
+  padding: 0.62rem 0.66rem;
+  display: grid;
+  gap: 0.22rem;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.practice-course-item:hover {
+  border-color: rgba(129, 243, 255, 0.6);
+}
+
+.practice-course-item.active {
+  border-color: rgba(129, 243, 255, 0.86);
+  background: linear-gradient(135deg, rgba(34, 235, 255, 0.2), rgba(29, 165, 255, 0.14));
+}
+
+.practice-course-item.locked {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.practice-course-item-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.practice-course-item-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.practice-course-main {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.practice-course-goal {
+  margin: 0;
+}
+
+.practice-target-text {
+  border-radius: 11px;
+  border: 1px solid rgba(157, 191, 255, 0.22);
+  background: rgba(5, 12, 26, 0.78);
+  padding: 0.7rem 0.8rem;
+  font-family: var(--font-jetbrains-mono), monospace;
+  color: #dcecff;
+  line-height: 1.6;
+}
+
+.practice-course-stats {
+  margin-top: 0.56rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.practice-course-result {
+  margin-top: 0.5rem;
+}
+
+.practice-course-result .kpi-label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.practice-course-actions {
+  margin-top: 0.58rem;
+  display: flex;
+  gap: 0.46rem;
+}
+
+.practice-label {
+  display: grid;
+  gap: 0.38rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.practice-label select {
+  width: 240px;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(157, 191, 255, 0.28);
+  background: rgba(8, 16, 34, 0.84);
+  color: var(--text-primary);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.practice-label select:focus {
+  outline: none;
+  border-color: rgba(0, 231, 255, 0.54);
+  box-shadow: 0 0 0 3px rgba(0, 231, 255, 0.16);
+}
+
+.practice-lesson-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.practice-lesson-group .duration-link-btn {
+  min-height: 40px;
+}
+
+.practice-lesson-group .duration-link-btn.disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  border-color: rgba(157, 191, 255, 0.18);
+}
+
+.practice-kpis {
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.78rem;
+}
+
+.practice-coach {
+  margin-top: 0;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(157, 191, 255, 0.22);
+  background:
+    linear-gradient(160deg, rgba(11, 22, 43, 0.78), rgba(7, 15, 31, 0.74)),
+    radial-gradient(380px 80px at 0% 0%, rgba(0, 231, 255, 0.08), transparent 70%);
+}
+
+.practice-coach .kpi-label {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.practice-beginner-flow {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.78rem 0.9rem;
+}
+
+.practice-step-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+}
+
+.practice-step-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(157, 191, 255, 0.26);
+  background: rgba(10, 20, 42, 0.62);
+  color: #a9bfdf;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.32rem 0.68rem;
+}
+
+.practice-step-chip.active {
+  border-color: rgba(129, 243, 255, 0.85);
+  background: linear-gradient(135deg, rgba(34, 235, 255, 0.32), rgba(29, 165, 255, 0.2));
+  color: #eafcff;
+}
+
+.practice-beginner-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.practice-beginner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.practice-page .typing-main-card {
+  margin-top: 0;
+}
+
+.practice-keyboard {
+  margin-bottom: 0.72rem;
+  border-radius: 12px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(5, 12, 26, 0.58);
+  padding: 0.7rem;
+}
+
+.practice-pro-keyboard-stage {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: linear-gradient(160deg, rgba(38, 44, 57, 0.92), rgba(33, 39, 52, 0.9));
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.practice-pro-keyboard {
+  position: relative;
+  z-index: 3;
+  padding: 0.58rem;
+  display: grid;
+  gap: 0.34rem;
+}
+
+.practice-pro-row {
+  display: flex;
+  gap: 0.32rem;
+}
+
+.practice-pro-key {
+  min-height: 39px;
+  border-radius: 8px;
+  border: 1px solid rgba(150, 158, 177, 0.42);
+  background: linear-gradient(180deg, rgba(242, 244, 248, 0.96), rgba(224, 229, 238, 0.94));
+  color: #273247;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-direction: column;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.69rem;
+  font-weight: 700;
+  user-select: none;
+  padding: 0.2rem 0.35rem 0.23rem;
+}
+
+.practice-pro-key-sub {
+  font-size: 0.55rem;
+  line-height: 1;
+  color: #596783;
+}
+
+.practice-pro-key-main {
+  font-size: 0.71rem;
+  line-height: 1;
+  align-self: center;
+}
+
+.practice-pro-key.home {
+  border-color: rgba(75, 224, 255, 0.52);
+}
+
+.practice-pro-key.target {
+  border-color: rgba(19, 214, 255, 0.96);
+  box-shadow: 0 0 0 2px rgba(42, 227, 255, 0.22);
+  background: linear-gradient(180deg, rgba(204, 252, 255, 0.98), rgba(171, 240, 255, 0.95));
+}
+
+.practice-pro-key.pressed {
+  background: linear-gradient(180deg, rgba(255, 240, 211, 0.98), rgba(255, 222, 167, 0.95));
+  border-color: rgba(255, 177, 87, 0.92);
+}
+
+.practice-overlay-hands {
+  position: absolute;
+  inset: 46px -16px -26px -16px;
+  width: 100%;
+  height: auto;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.practice-overlay-finger,
+.practice-overlay-thumb {
+  fill: rgba(218, 186, 186, 0.32);
+  stroke: rgba(120, 92, 100, 0.28);
+  stroke-width: 2.3;
+  transition: fill 170ms ease, stroke 170ms ease, filter 170ms ease;
+}
+
+.practice-overlay-finger.active,
+.practice-overlay-thumb.active {
+  fill: rgba(70, 222, 255, 0.46);
+  stroke: rgba(115, 242, 255, 0.9);
+  filter: drop-shadow(0 0 10px rgba(70, 222, 255, 0.42));
+}
+
+.practice-phase-note {
+  margin: 0 0 0.56rem;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.practice-keyboard-grid {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.practice-keyboard-row {
+  display: flex;
+  gap: 0.34rem;
+  justify-content: center;
+}
+
+.practice-keyboard-row-space {
+  margin-top: 0.14rem;
+}
+
+.practice-key {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(8, 16, 34, 0.82);
+  color: #cfe0ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.practice-key.home {
+  border-color: rgba(92, 236, 255, 0.34);
+}
+
+.practice-key.target {
+  border-color: rgba(129, 243, 255, 0.9);
+  background: linear-gradient(135deg, rgba(34, 235, 255, 0.35), rgba(29, 165, 255, 0.2));
+  color: #edfcff;
+  box-shadow: 0 0 0 2px rgba(34, 235, 255, 0.18);
+}
+
+.practice-key.pressed {
+  transform: translateY(1px);
+  border-color: rgba(255, 222, 128, 0.92);
+  background: linear-gradient(135deg, rgba(255, 199, 90, 0.36), rgba(255, 126, 86, 0.26));
+  color: #fff8ee;
+}
+
+.practice-key-space {
+  width: min(420px, 80%);
+  max-width: 100%;
+  height: 32px;
+  border-radius: 10px;
+  letter-spacing: 0.05em;
+}
+
+.practice-finger-visual {
+  margin-top: 0.62rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.practice-hands-visual {
+  margin-top: 0.62rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.practice-hand-svg-card {
+  border-radius: 10px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background:
+    radial-gradient(120% 90% at 10% 0%, rgba(65, 125, 255, 0.16), transparent 58%),
+    rgba(7, 15, 31, 0.78);
+  padding: 0.5rem;
+  box-shadow: inset 0 1px 0 rgba(170, 206, 255, 0.08);
+}
+
+.practice-hand-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.practice-palm {
+  fill: rgba(29, 50, 86, 0.82);
+  stroke: rgba(157, 191, 255, 0.3);
+  stroke-width: 2;
+}
+
+.practice-finger-shape,
+.practice-thumb-shape {
+  fill: rgba(18, 33, 60, 0.96);
+  stroke: rgba(157, 191, 255, 0.34);
+  stroke-width: 2;
+  transition: fill 180ms ease, stroke 180ms ease, filter 180ms ease, transform 180ms ease;
+}
+
+.practice-finger-shape.active,
+.practice-thumb-shape.active {
+  fill: rgba(40, 223, 255, 0.62);
+  stroke: rgba(168, 248, 255, 0.96);
+  filter: drop-shadow(0 0 9px rgba(40, 223, 255, 0.5));
+  transform: translateY(-0.6px);
+}
+
+.practice-joint {
+  fill: rgba(129, 162, 208, 0.55);
+  stroke: rgba(182, 216, 255, 0.42);
+  stroke-width: 1.1;
+  transition: fill 180ms ease, stroke 180ms ease, filter 180ms ease;
+}
+
+.practice-joint.active {
+  fill: rgba(132, 241, 255, 0.95);
+  stroke: rgba(212, 252, 255, 1);
+  filter: drop-shadow(0 0 5px rgba(40, 223, 255, 0.62));
+}
+
+.practice-finger-hand {
+  border-radius: 10px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(7, 15, 31, 0.72);
+  padding: 0.52rem;
+}
+
+.practice-finger-hand-title {
+  margin: 0 0 0.42rem;
+  color: #9cc2ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.practice-finger-lane {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.practice-finger-thumb {
+  display: flex;
+  justify-content: center;
+}
+
+.practice-finger-dot {
+  border-radius: 9px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(5, 12, 26, 0.74);
+  color: #d9edff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.36rem 0.48rem;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.practice-finger-legend {
+  margin-top: 0.48rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.34rem;
+}
+
+.practice-finger-dot small {
+  color: #9cb2d9;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.practice-finger-dot.active {
+  border-color: rgba(129, 243, 255, 0.9);
+  background: linear-gradient(135deg, rgba(34, 235, 255, 0.32), rgba(29, 165, 255, 0.2));
+  box-shadow: 0 0 0 2px rgba(34, 235, 255, 0.16), 0 0 18px rgba(56, 220, 255, 0.26);
+  animation: practice-finger-pulse 1100ms ease-in-out infinite;
+}
+
+@keyframes practice-finger-pulse {
+  0%, 100% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+  }
+}
+
+.practice-keyboard-fingers {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.practice-finger-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(157, 191, 255, 0.25);
+  background: rgba(10, 20, 42, 0.74);
+  color: #d3e6ff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.28rem 0.52rem;
+}
+
+.practice-hand-map {
+  margin-top: 0.62rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.practice-hand-card {
+  border-radius: 10px;
+  border: 1px solid rgba(157, 191, 255, 0.2);
+  background: rgba(7, 15, 31, 0.72);
+  padding: 0.5rem;
+}
+
+.practice-hand-title {
+  margin: 0 0 0.42rem;
+  color: #9cc2ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.practice-hand-fingers {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.practice-hand-finger {
+  border-radius: 8px;
+  border: 1px solid rgba(157, 191, 255, 0.18);
+  background: rgba(5, 12, 26, 0.74);
+  padding: 0.32rem 0.42rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.practice-hand-finger.active {
+  border-color: rgba(129, 243, 255, 0.82);
+  background: linear-gradient(135deg, rgba(34, 235, 255, 0.2), rgba(29, 165, 255, 0.14));
+  box-shadow: 0 0 0 2px rgba(34, 235, 255, 0.14);
+}
+
+.practice-hand-finger-label {
+  color: #d9edff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.practice-hand-finger-keys {
+  color: #9cb2d9;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.practice-page .typing-word-grid {
+  min-height: 150px;
+  max-height: 230px;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(157, 191, 255, 0.22);
+  background: rgba(5, 12, 26, 0.72);
+  padding: 0.75rem 0.75rem 0.55rem;
+  align-content: start;
+}
+
+.practice-page .typing-word.done-correct {
+  color: #4affb7;
+}
+
+.practice-page .typing-word.done-incorrect {
+  color: #ff6b8a;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(255, 107, 138, 0.9);
+}
+
+.practice-page .typing-word.active {
+  color: #f5fbff;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.practice-recap {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.practice-weak-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.practice-weak-keys .leaderboard-chip {
+  min-width: 40px;
+  justify-content: center;
+}
+
+.practice-patterns {
+  margin-top: 0.1rem;
+}
+
+.practice-heatmap {
+  margin-top: 0.2rem;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.practice-heatmap-key {
+  min-height: 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(157, 191, 255, 0.22);
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e8f3ff;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+@media (max-width: 920px) {
+  .practice-course-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .practice-key {
+    min-width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    font-size: 0.69rem;
+  }
+
+  .practice-pro-key {
+    min-height: 34px;
+    font-size: 0.62rem;
+    padding: 0.14rem 0.26rem 0.18rem;
+  }
+
+  .practice-pro-key-sub {
+    font-size: 0.5rem;
+  }
+
+  .practice-pro-key-main {
+    font-size: 0.63rem;
+  }
+
+  .practice-pro-keyboard-stage {
+    min-height: 250px;
+  }
+
+  .practice-overlay-hands {
+    inset: 42px -10px -18px -10px;
+    height: auto;
+  }
+
+  .practice-key-space {
+    width: min(320px, 84%);
+    height: 30px;
+  }
+
+  .practice-finger-lane {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-hands-visual {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-finger-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .practice-hand-map {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-heatmap {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
 }
 
 .typing-daily-leaderboard {

@@ -148,7 +148,7 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
   const activePoint = chart && hoveredIndex !== null ? chart.points[hoveredIndex] : null;
 
   function resolveNearestIndex(clientX: number): number | null {
-    if (!svgRef.current || chart.points.length === 0) return null;
+    if (!chart || !svgRef.current || chart.points.length === 0) return null;
     const rect = svgRef.current.getBoundingClientRect();
     if (rect.width <= 0) return null;
     const xInViewBox = ((clientX - rect.left) / rect.width) * chart.width;

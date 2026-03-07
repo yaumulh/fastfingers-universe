@@ -27,6 +27,7 @@ export async function GET(_request: Request, context: RouteContext) {
         id: true,
         username: true,
         displayName: true,
+        avatarUrl: true,
         rating: true,
         trustScore: true,
         totalXp: true,

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { io, type Socket } from "socket.io-client";
@@ -915,7 +916,14 @@ export default function MultiplayerPage() {
               </p>
               <p className="multiplayer-meta-pill">
                 <UserIcon className="ui-icon" />
-                Player: <strong>{authUser ? name : "Guest"}</strong>
+                Player:{" "}
+                {authUser?.username ? (
+                  <Link href={`/u/${encodeURIComponent(authUser.username)}`} className="multiplayer-profile-link">
+                    <strong>{name}</strong>
+                  </Link>
+                ) : (
+                  <strong>Guest</strong>
+                )}
               </p>
             </div>
             {!authLoading && !authUser ? (
@@ -993,7 +1001,9 @@ export default function MultiplayerPage() {
                         <p className="leaderboard-title">
                           Host:
                           <span className="user-name-inline-with-rank">
-                            <span>{item.hostName}</span>
+                            <Link href={`/u/${encodeURIComponent(item.hostName)}`} className="multiplayer-profile-link">
+                              {item.hostName}
+                            </Link>
                             {getUserTags(item.hostName, item.language).length ? (
                               <>
                                 <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[item.language]}>
@@ -1073,10 +1083,10 @@ export default function MultiplayerPage() {
                       <div className="room-player-main">
                         <span className="room-player-avatar">{player.name.slice(0, 1).toUpperCase()}</span>
                         <span className="user-name-inline-with-rank">
-                          <span>
+                          <Link href={`/u/${encodeURIComponent(player.name)}`} className="multiplayer-profile-link">
                             {player.name}
                             {room.hostId === player.id ? " (Host)" : ""}
-                          </span>
+                          </Link>
                           {getUserTags(player.name, room.language).length ? (
                             <>
                               <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[room.language]}>
@@ -1157,7 +1167,13 @@ export default function MultiplayerPage() {
                 className={`chat-item ${message.playerId === selfPlayerId ? "chat-self" : ""}`}
                 variants={listItem}
               >
-                <strong>{message.name}:</strong> {message.text}
+                <strong>
+                  <Link href={`/u/${encodeURIComponent(message.name)}`} className="multiplayer-profile-link">
+                    {message.name}
+                  </Link>
+                  :
+                </strong>{" "}
+                {message.text}
               </motion.p>
             ))}
           </motion.div>
@@ -1279,7 +1295,9 @@ export default function MultiplayerPage() {
               <motion.article key={player.id} className="battle-bar-card" variants={listItem}>
                 <div className="battle-bar-head">
                   <span>
-                    {player.name}
+                    <Link href={`/u/${encodeURIComponent(player.name)}`} className="multiplayer-profile-link">
+                      {player.name}
+                    </Link>
                     {player.id === selfPlayerId ? " (You)" : ""}
                     {getUserTags(player.name, room.language).length ? (
                       <span className="user-name-inline-with-rank">

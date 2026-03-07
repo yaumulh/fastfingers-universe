@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
+import { emitMessagesUnreadChanged } from "@/lib/ui-sync-events";
 import { ChatIcon } from "@/app/components/icons";
 
 type SessionUser = {
@@ -15,6 +17,8 @@ type ConversationItem = {
   unreadCount: number;
   updatedAt: string;
   lastMessageAt: string | null;
+  myLastReadAt?: string | null;
+  peerLastReadAt?: string | null;
   peer: {
     id: string;
     username: string;
@@ -54,11 +58,25 @@ export default function MessagesPage() {
   const [messageError, setMessageError] = useState<string | null>(null);
   const [startUsername, setStartUsername] = useState("");
   const [initialConversationId, setInitialConversationId] = useState<string | null>(null);
+  const [peerTypingName, setPeerTypingName] = useState<string | null>(null);
+  const typingPingAtRef = useRef(0);
 
   const selectedConversation = useMemo(
     () => conversations.find((item) => item.id === selectedConversationId) ?? null,
     [conversations, selectedConversationId],
   );
+  const deliveryStatus = useMemo(() => {
+    if (!selectedConversation || !sessionUser?.id || !selectedConversation.lastMessage) return null;
+    const last = selectedConversation.lastMessage;
+    const isMine = last.senderId === sessionUser.id;
+    if (!isMine) return null;
+    const peerReadAt = selectedConversation.peerLastReadAt ? new Date(selectedConversation.peerLastReadAt).getTime() : 0;
+    const lastSentAt = new Date(last.createdAt).getTime();
+    if (peerReadAt > 0 && lastSentAt > 0 && peerReadAt >= lastSentAt) {
+      return `Seen ${new Date(selectedConversation.peerLastReadAt as string).toLocaleTimeString()}`;
+    }
+    return "Sent";
+  }, [selectedConversation, sessionUser?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -101,6 +119,7 @@ export default function MessagesPage() {
       setConversations([]);
       setSelectedConversationId(null);
       setMessages([]);
+      emitMessagesUnreadChanged(0);
       return;
     }
     void loadConversations(initialConversationId ?? undefined);
@@ -121,6 +140,40 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversationId]);
 
+  useEffect(() => {
+    if (!selectedConversationId) {
+      setPeerTypingName(null);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadTyping(): Promise<void> {
+      try {
+        const response = await fetch(`/api/messages/conversations/${selectedConversationId}/typing`, { cache: "no-store" });
+        const json = (await response.json()) as {
+          data?: { typing: boolean; user?: { username: string; displayName?: string | null } | null };
+        };
+        if (!response.ok || !json.data || cancelled) return;
+        if (json.data.typing && json.data.user) {
+          setPeerTypingName(json.data.user.displayName ?? json.data.user.username);
+        } else {
+          setPeerTypingName(null);
+        }
+      } catch {
+        if (!cancelled) setPeerTypingName(null);
+      }
+    }
+
+    void loadTyping();
+    const interval = window.setInterval(() => {
+      void loadTyping();
+    }, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [selectedConversationId]);
+
   async function loadConversations(preferredId?: string | null, options?: { silent?: boolean }): Promise<void> {
     if (!sessionUser?.id) return;
     const silent = Boolean(options?.silent);
@@ -134,6 +187,9 @@ export default function MessagesPage() {
         throw new Error(json.error ?? "Failed to load conversations.");
       }
       setConversations(json.data);
+      emitMessagesUnreadChanged(
+        json.data.reduce((sum, item) => sum + Math.max(0, Number(item.unreadCount ?? 0)), 0),
+      );
       const nextId = preferredId ?? selectedConversationId;
       if (nextId && json.data.some((item) => item.id === nextId)) {
         setSelectedConversationId(nextId);
@@ -212,11 +268,66 @@ export default function MessagesPage() {
         throw new Error(json.error ?? "Failed to send message.");
       }
       setMessageInput("");
+      await fetch(`/api/messages/conversations/${selectedConversationId}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: false }),
+      });
       await loadMessages(selectedConversationId, { silent: true });
     } catch (error) {
       setMessageError(error instanceof Error ? error.message : "Failed to send message.");
     }
   }
+
+  useEffect(() => {
+    if (!selectedConversationId) return;
+    if (messageInput.trim().length === 0) {
+      void fetch(`/api/messages/conversations/${selectedConversationId}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: false }),
+      });
+      typingPingAtRef.current = 0;
+      return;
+    }
+
+    let cancelled = false;
+    const now = Date.now();
+    if (now - typingPingAtRef.current > 900) {
+      typingPingAtRef.current = now;
+      void fetch(`/api/messages/conversations/${selectedConversationId}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: true }),
+      });
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (cancelled) return;
+      void fetch(`/api/messages/conversations/${selectedConversationId}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: false }),
+      });
+      typingPingAtRef.current = 0;
+    }, 1800);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [messageInput, selectedConversationId]);
+
+  useEffect(() => {
+    return () => {
+      if (!selectedConversationId) return;
+      void fetch(`/api/messages/conversations/${selectedConversationId}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: false }),
+      });
+    };
+  }, [selectedConversationId]);
 
   if (sessionLoading) {
     return (
@@ -269,16 +380,25 @@ export default function MessagesPage() {
             {conversationsLoading && conversations.length === 0 ? <p className="kpi-label">Loading...</p> : null}
             {!conversationsLoading && conversations.length === 0 ? <p className="kpi-label">No conversations yet.</p> : null}
             {conversations.map((item) => (
-              <button
+              <article
                 key={item.id}
-                className={`message-conversation-item ${selectedConversationId === item.id ? "active" : ""}`}
-                type="button"
-                onClick={() => setSelectedConversationId(item.id)}
+                className={`message-conversation-item-wrap ${selectedConversationId === item.id ? "active" : ""}`}
               >
-                <span className="message-conversation-name">{item.peer?.displayName ?? item.peer?.username ?? "Unknown"}</span>
-                <span className="message-conversation-preview">{item.lastMessage?.body ?? "No message yet"}</span>
-                {item.unreadCount > 0 ? <span className="message-conversation-unread">{item.unreadCount}</span> : null}
-              </button>
+                <button
+                  className={`message-conversation-item ${selectedConversationId === item.id ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setSelectedConversationId(item.id)}
+                >
+                  <span className="message-conversation-name">{item.peer?.displayName ?? item.peer?.username ?? "Unknown"}</span>
+                  <span className="message-conversation-preview">{item.lastMessage?.body ?? "No message yet"}</span>
+                  {item.unreadCount > 0 ? <span className="message-conversation-unread">{item.unreadCount}</span> : null}
+                </button>
+                {item.peer?.username ? (
+                  <Link href={`/u/${encodeURIComponent(item.peer.displayName ?? item.peer.username)}`} className="message-peer-profile-link">
+                    View profile
+                  </Link>
+                ) : null}
+              </article>
             ))}
           </aside>
 
@@ -288,6 +408,13 @@ export default function MessagesPage() {
                 <p className="kpi-label">
                   Chat with <strong>{selectedConversation.peer?.displayName ?? selectedConversation.peer?.username ?? "Unknown"}</strong>
                 </p>
+                {selectedConversation.peer?.username ? (
+                  <p className="kpi-label">
+                    <Link href={`/u/${encodeURIComponent(selectedConversation.peer.displayName ?? selectedConversation.peer.username)}`} className="message-peer-profile-link">
+                      Open public profile
+                    </Link>
+                  </p>
+                ) : null}
                 <div className="message-thread-list">
                   {messagesLoading && messages.length === 0 ? <p className="kpi-label">Loading messages...</p> : null}
                   {!messagesLoading && messages.length === 0 ? <p className="kpi-label">No messages yet.</p> : null}
@@ -318,6 +445,8 @@ export default function MessagesPage() {
                     Send
                   </button>
                 </div>
+                {deliveryStatus ? <p className="kpi-label">{deliveryStatus}</p> : null}
+                {peerTypingName ? <p className="kpi-label">{peerTypingName} is typing...</p> : null}
               </>
             ) : (
               <p className="kpi-label">Select conversation or start new chat.</p>

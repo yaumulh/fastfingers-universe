@@ -88,6 +88,7 @@ async function getFilteredResults(searchParams: URLSearchParams) {
           id: true,
           username: true,
           displayName: true,
+          avatarUrl: true,
           role: true,
         },
       },

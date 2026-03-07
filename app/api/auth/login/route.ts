@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, username: true, displayName: true, passwordHash: true, isActive: true },
+    select: { id: true, username: true, displayName: true, avatarUrl: true, passwordHash: true, isActive: true },
   });
   if (!user || !user.passwordHash) {
     return NextResponse.json(
@@ -52,5 +52,7 @@ export async function POST(request: Request) {
   }
 
   await setAuthSession(user.id, user.username);
-  return NextResponse.json({ data: { id: user.id, username: user.username, displayName: user.displayName } });
+  return NextResponse.json({
+    data: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl },
+  });
 }

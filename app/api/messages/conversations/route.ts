@@ -108,6 +108,8 @@ export async function GET(request: Request) {
         lastMessageAt: conversation.lastMessageAt,
         unreadCount,
         memberCount: conversation.members.length,
+        myLastReadAt: me?.lastReadAt ?? null,
+        peerLastReadAt: other?.lastReadAt ?? null,
         peer: other
           ? {
               id: other.user.id,
@@ -225,6 +227,8 @@ export async function POST(request: Request) {
       updatedAt: conversation.updatedAt,
       lastMessageAt: conversation.lastMessageAt,
       unreadCount: 0,
+      myLastReadAt: null,
+      peerLastReadAt: null,
       peer: peer
         ? {
             id: peer.id,

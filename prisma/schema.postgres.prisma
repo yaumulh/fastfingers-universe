@@ -12,6 +12,7 @@ model User {
   id          String       @id @default(cuid())
   username    String       @unique
   displayName String?      @unique
+  avatarUrl   String?
   displayNameUpdatedAt DateTime?
   role        String       @default("user")
   isActive    Boolean      @default(true)

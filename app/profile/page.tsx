@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
 import { FriendProfileModal } from "../components/friend-profile-modal";
 import { RecentRunsChart } from "../components/recent-runs-chart";
+import { UserAvatar } from "../components/user-avatar";
 import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
 
 type UserTag = {
@@ -26,6 +28,7 @@ type ProfileResponse = {
       id: string;
       username: string;
       displayName?: string | null;
+      avatarUrl?: string | null;
       displayNameUpdatedAt?: string | null;
       displayNameChangeAvailableAt?: string | null;
       rating: number;
@@ -88,14 +91,16 @@ export default function ProfilePage() {
   const [friendUsername, setFriendUsername] = useState("");
   const [friendsData, setFriendsData] = useState<{
     friends: Array<{ id: string; username: string; displayName?: string | null }>;
-    pendingIncoming: Array<{ id: string; user: { id: string; username: string; displayName?: string | null } }>;
-    pendingOutgoing: Array<{ id: string; user: { id: string; username: string; displayName?: string | null } }>;
+    pendingIncoming: Array<{ id: string; user: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null } }>;
+    pendingOutgoing: Array<{ id: string; user: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null } }>;
   } | null>(null);
   const [socialBusy, setSocialBusy] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [displayNameBusy, setDisplayNameBusy] = useState(false);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [displayNameEditOpen, setDisplayNameEditOpen] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [challengeCode, setChallengeCode] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const [siteOrigin, setSiteOrigin] = useState("");
@@ -105,11 +110,14 @@ export default function ProfilePage() {
   const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
   const [messageActionBusy, setMessageActionBusy] = useState(false);
   const [tagLanguage, setTagLanguage] = useState<LanguageCode>("en");
+  const [shareCopied, setShareCopied] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [friendProfileData, setFriendProfileData] = useState<{
     user: {
       id: string;
       username: string;
       displayName?: string | null;
+      avatarUrl?: string | null;
       rating: number;
       trustScore: number;
       streakDays: number;
@@ -270,6 +278,13 @@ export default function ProfilePage() {
     return `Next change available on ${target.toLocaleString()}.`;
   }, [canChangeDisplayName, data?.user.displayNameChangeAvailableAt]);
 
+  const publicProfileUrl = useMemo(() => {
+    if (!data?.user.username) return "";
+    const base = siteOrigin || (typeof window !== "undefined" ? window.location.origin : "");
+    if (!base) return "";
+    return `${base}/u/${encodeURIComponent(data.user.username)}`;
+  }, [data?.user.username, siteOrigin]);
+
   async function refreshFriends() {
     const response = await fetch("/api/friends", { cache: "no-store" });
     if (!response.ok) {
@@ -340,6 +355,17 @@ export default function ProfilePage() {
       setChallengeCode(json.data.code);
     } finally {
       setSocialBusy(false);
+    }
+  }
+
+  async function copyPublicProfileLink() {
+    if (!publicProfileUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicProfileUrl);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1600);
+    } catch {
+      setShareCopied(false);
     }
   }
 
@@ -454,6 +480,91 @@ export default function ProfilePage() {
     }
   }
 
+  async function uploadAvatar(file: File): Promise<void> {
+    if (!file || !data) return;
+
+    const allowed = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setAvatarError("Only PNG, JPG, or WEBP is allowed.");
+      return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      setAvatarError("Avatar max size is 1MB.");
+      return;
+    }
+
+    try {
+      setAvatarBusy(true);
+      setAvatarError(null);
+      const form = new FormData();
+      form.set("avatar", file);
+      const response = await fetch("/api/profile/avatar", {
+        method: "PATCH",
+        body: form,
+      });
+      const json = (await response.json()) as {
+        data?: { avatarUrl?: string | null };
+        error?: string;
+      };
+      if (!response.ok || !json.data) {
+        setAvatarError(json.error ?? "Failed to upload avatar.");
+        return;
+      }
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              user: {
+                ...prev.user,
+                avatarUrl: json.data?.avatarUrl ?? null,
+              },
+            }
+          : prev,
+      );
+      window.dispatchEvent(new CustomEvent("ff:auth-changed"));
+    } catch {
+      setAvatarError("Failed to upload avatar.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar(): Promise<void> {
+    if (!data) return;
+    try {
+      setAvatarBusy(true);
+      setAvatarError(null);
+      const response = await fetch("/api/profile/avatar", { method: "DELETE" });
+      const json = (await response.json()) as {
+        data?: { avatarUrl?: string | null };
+        error?: string;
+      };
+      if (!response.ok || !json.data) {
+        setAvatarError(json.error ?? "Failed to remove avatar.");
+        return;
+      }
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              user: {
+                ...prev.user,
+                avatarUrl: null,
+              },
+            }
+          : prev,
+      );
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+      window.dispatchEvent(new CustomEvent("ff:auth-changed"));
+    } catch {
+      setAvatarError("Failed to remove avatar.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   return (
     <main className="site-shell profile-page">
       <section className="typing-header">
@@ -469,11 +580,28 @@ export default function ProfilePage() {
 
       {!loading && !error && data ? (
         <>
-          <section className="grid-3 profile-summary">
-            <article className="card glass">
-              <span className="ui-icon-badge">
-                <UsersIcon className="ui-icon" />
-              </span>
+          <section className="profile-hero-section profile-summary">
+            <article className="card glass profile-hero-card">
+              <div className="profile-avatar-wrap">
+                {data.user.avatarUrl ? (
+                  <Image
+                    src={data.user.avatarUrl}
+                    alt={`${data.user.displayName ?? data.user.username} avatar`}
+                    width={72}
+                    height={72}
+                    className="profile-avatar-image"
+                    unoptimized
+                  />
+                ) : (
+                  <UserAvatar
+                    username={data.user.username}
+                    displayName={data.user.displayName}
+                    avatarUrl={null}
+                    size="md"
+                    className="profile-avatar-fallback"
+                  />
+                )}
+              </div>
               <div className="profile-name-row">
                 <p className="kpi">{data.user.displayName ?? data.user.username}</p>
                 <button
@@ -488,6 +616,34 @@ export default function ProfilePage() {
                 </button>
               </div>
               <p className="kpi-label profile-username-linklike">@{data.user.username}</p>
+              <div className="profile-social-row profile-avatar-actions">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="profile-avatar-input"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadAvatar(file);
+                    }
+                  }}
+                  disabled={avatarBusy}
+                />
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarBusy}
+                >
+                  {avatarBusy ? "Uploading..." : "Upload Avatar"}
+                </button>
+                {data.user.avatarUrl ? (
+                  <button className="btn btn-ghost" type="button" onClick={() => void removeAvatar()} disabled={avatarBusy}>
+                    Remove
+                  </button>
+                ) : null}
+              </div>
               <p className="kpi-label">
                 Level <strong>{data.user.level.level}</strong> • {data.user.level.currentLevelXp}/{data.user.level.nextLevelXp} XP
               </p>
@@ -530,21 +686,34 @@ export default function ProfilePage() {
                 <InfoIcon className="ui-icon" />
                 <span>{displayNameCooldownText}</span>
               </p>
+              <div className="profile-displayname-actions">
+                <button className="btn btn-ghost" type="button" onClick={() => void copyPublicProfileLink()} disabled={!publicProfileUrl}>
+                  {shareCopied ? "Copied" : "Share Profile"}
+                </button>
+                {publicProfileUrl ? (
+                  <Link href={`/u/${encodeURIComponent(data.user.username)}`} className="btn btn-ghost">
+                    View Public
+                  </Link>
+                ) : null}
+              </div>
+              <div className="profile-hero-metrics">
+                <article className="profile-hero-metric">
+                  <span className="ui-icon-badge">
+                    <TrophyIcon className="ui-icon" />
+                  </span>
+                  <p className="kpi">{data.user.rating}</p>
+                  <p className="kpi-label">Rating</p>
+                </article>
+                <article className="profile-hero-metric">
+                  <span className="ui-icon-badge">
+                    <SparkIcon className="ui-icon" />
+                  </span>
+                  <p className="kpi">{data.user.trustScore}%</p>
+                  <p className="kpi-label">Trust Score</p>
+                </article>
+              </div>
               {displayNameError ? <p className="kpi-label auth-error">{displayNameError}</p> : null}
-            </article>
-            <article className="card glass">
-              <span className="ui-icon-badge">
-                <TrophyIcon className="ui-icon" />
-              </span>
-              <p className="kpi">{data.user.rating}</p>
-              <p className="kpi-label">Rating</p>
-            </article>
-            <article className="card glass">
-              <span className="ui-icon-badge">
-                <SparkIcon className="ui-icon" />
-              </span>
-              <p className="kpi">{data.user.trustScore}%</p>
-              <p className="kpi-label">Trust Score</p>
+              {avatarError ? <p className="kpi-label auth-error">{avatarError}</p> : null}
             </article>
           </section>
 

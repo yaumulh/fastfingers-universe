@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type RunPoint = {
   date: string;
@@ -20,17 +20,37 @@ type ChartPoint = {
   accuracy: number;
   label: string;
   x: number;
-  barHeight: number;
-  accY: number;
+  yWpm: number;
+  yAcc: number;
 };
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-export function RecentRunsChart({ runs, maxPoints = 6 }: RecentRunsChartProps) {
+function smoothPath(points: Array<{ x: number; y: number }>): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cx1 = prev.x + (curr.x - prev.x) * 0.35;
+    const cx2 = prev.x + (curr.x - prev.x) * 0.65;
+    d += ` C ${cx1} ${prev.y}, ${cx2} ${curr.y}, ${curr.x} ${curr.y}`;
+  }
+  return d;
+}
+
+export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
   const [viewMode, setViewMode] = useState<"both" | "wpm" | "acc">("both");
   const [typingMode, setTypingMode] = useState<"normal" | "advanced">("normal");
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const uid = useId().replace(/:/g, "");
+
   const modeAvailability = useMemo(() => {
     let hasNormal = false;
     let hasAdvanced = false;
@@ -64,53 +84,146 @@ export function RecentRunsChart({ runs, maxPoints = 6 }: RecentRunsChartProps) {
       return null;
     }
 
-    const chartW = 560;
-    const chartH = 180;
-    const topPad = 16;
-    const bottomPad = 38;
-    const leftPad = 18;
-    const rightPad = 14;
-    const plotW = chartW - leftPad - rightPad;
-    const plotH = chartH - topPad - bottomPad;
-    const maxWpm = Math.max(20, ...sorted.map((run) => run.wpm));
-    const step = sorted.length > 1 ? plotW / (sorted.length - 1) : 0;
-    const barW = sorted.length <= 3 ? 28 : 20;
+    const width = 760;
+    const height = 290;
+    const left = 46;
+    const right = 44;
+    const top = 22;
+    const bottom = 46;
+    const plotW = width - left - right;
+    const plotH = height - top - bottom;
+    const minWpm = Math.min(...sorted.map((item) => item.wpm));
+    const maxWpm = Math.max(...sorted.map((item) => item.wpm));
+    const wpmFloor = Math.max(0, Math.floor((minWpm - 8) / 5) * 5);
+    const wpmCeil = Math.max(wpmFloor + 10, Math.ceil((maxWpm + 8) / 5) * 5);
+    const wpmSpan = Math.max(1, wpmCeil - wpmFloor);
+    const xStep = sorted.length > 1 ? plotW / (sorted.length - 1) : 0;
 
     const points: ChartPoint[] = sorted.map((run, index) => {
-      const x = leftPad + index * step;
-      const barHeight = clamp((run.wpm / maxWpm) * (plotH - 8), 4, plotH);
-      const accY = topPad + (1 - clamp(run.accuracy, 0, 100) / 100) * plotH;
+      const x = left + xStep * index;
+      const yWpm = top + (1 - (run.wpm - wpmFloor) / wpmSpan) * plotH;
+      const yAcc = top + (1 - clamp(run.accuracy, 0, 100) / 100) * plotH;
       return {
         date: new Date(run.date),
         wpm: Math.round(run.wpm),
         accuracy: Math.round(run.accuracy),
         label: new Date(run.date).toLocaleDateString(undefined, { month: "short", day: "2-digit" }),
         x,
-        barHeight,
-        accY,
+        yWpm,
+        yAcc,
       };
     });
 
-    const linePath = points
-      .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.accY.toFixed(1)}`)
-      .join(" ");
+    const wpmLinePath = smoothPath(points.map((point) => ({ x: point.x, y: point.yWpm })));
+    const accLinePath = smoothPath(points.map((point) => ({ x: point.x, y: point.yAcc })));
+
+    const wpmAreaPath = `${wpmLinePath} L ${points[points.length - 1].x} ${top + plotH} L ${points[0].x} ${top + plotH} Z`;
+    const accAreaPath = `${accLinePath} L ${points[points.length - 1].x} ${top + plotH} L ${points[0].x} ${top + plotH} Z`;
 
     const latest = points[points.length - 1];
-    return { chartW, chartH, topPad, plotH, points, linePath, latest, maxWpm, leftPad };
+    const first = points[0];
+    const deltaWpm = latest.wpm - first.wpm;
+
+    return {
+      width,
+      height,
+      left,
+      right,
+      top,
+      bottom,
+      plotW,
+      plotH,
+      points,
+      wpmLinePath,
+      accLinePath,
+      wpmAreaPath,
+      accAreaPath,
+      latest,
+      wpmFloor,
+      wpmCeil,
+      deltaWpm,
+    };
   }, [maxPoints, runs, typingMode]);
+
+  const activePoint = chart && hoveredIndex !== null ? chart.points[hoveredIndex] : null;
+
+  function resolveNearestIndex(clientX: number): number | null {
+    if (!svgRef.current || chart.points.length === 0) return null;
+    const rect = svgRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return null;
+    const xInViewBox = ((clientX - rect.left) / rect.width) * chart.width;
+    let nearest = 0;
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < chart.points.length; i += 1) {
+      const dist = Math.abs(chart.points[i].x - xInViewBox);
+      if (dist < bestDist) {
+        bestDist = dist;
+        nearest = i;
+      }
+    }
+    return nearest;
+  }
+
+  function handlePointerMove(event: React.PointerEvent<SVGSVGElement>): void {
+    const nextIndex = resolveNearestIndex(event.clientX);
+    if (nextIndex === null) return;
+    setHoveredIndex(nextIndex);
+    if (svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      setTooltipPos({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+    }
+  }
+
+  const tooltipStyle = useMemo(() => {
+    if (!activePoint || !tooltipPos || !svgRef.current) {
+      return null;
+    }
+    const rect = svgRef.current.getBoundingClientRect();
+    const tooltipWidth = 184;
+    const tooltipHeight = 90;
+    const edge = 8;
+    const offset = 12;
+
+    let left = tooltipPos.x + offset;
+    if (left + tooltipWidth > rect.width - edge) {
+      left = tooltipPos.x - tooltipWidth - offset;
+    }
+    left = Math.min(Math.max(left, edge), Math.max(edge, rect.width - tooltipWidth - edge));
+
+    let top = tooltipPos.y - tooltipHeight - offset;
+    if (top < edge) {
+      top = tooltipPos.y + offset;
+    }
+    if (top + tooltipHeight > rect.height - edge) {
+      top = Math.max(edge, rect.height - tooltipHeight - edge);
+    }
+
+    return { left: `${left}px`, top: `${top}px` };
+  }, [activePoint, tooltipPos]);
 
   if (!chart) {
     return <p className="kpi-label">No run data yet.</p>;
   }
+
+  const yTicks = 4;
+  const accTicks = [0, 25, 50, 75, 100];
+  const seriesKey = `${typingMode}-${viewMode}-${chart.points.length}`;
 
   return (
     <div className="runs-chart-shell">
       <div className="runs-chart-head">
         <div className="runs-chart-meta">
           <span className="runs-chart-chip">{chart.points.length} runs</span>
-          <span className="runs-chart-chip">Top {chart.maxWpm} WPM scale</span>
-          <span className="runs-chart-chip accent">Latest {chart.latest.wpm} WPM</span>
+          <span className="runs-chart-chip">Latest {chart.latest.wpm} WPM</span>
+          <span className={`runs-chart-chip ${chart.deltaWpm >= 0 ? "accent" : ""}`}>
+            {chart.deltaWpm >= 0 ? "+" : ""}
+            {chart.deltaWpm} from first run
+          </span>
         </div>
+
         <div className="runs-mode-toggle" role="tablist" aria-label="Typing mode">
           <button
             type="button"
@@ -133,6 +246,7 @@ export function RecentRunsChart({ runs, maxPoints = 6 }: RecentRunsChartProps) {
             Advanced
           </button>
         </div>
+
         <div className="runs-chart-toggle" role="tablist" aria-label="Chart mode">
           <button
             type="button"
@@ -163,51 +277,147 @@ export function RecentRunsChart({ runs, maxPoints = 6 }: RecentRunsChartProps) {
           </button>
         </div>
       </div>
-      <svg className="runs-chart" viewBox={`0 0 ${chart.chartW} ${chart.chartH}`} aria-label="Latest typing runs chart">
-        <defs>
-          <linearGradient id="runs-bar-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#7ef6ff" />
-            <stop offset="100%" stopColor="#4d8dff" />
-          </linearGradient>
-          <linearGradient id="runs-line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#e5d3ff" />
-            <stop offset="100%" stopColor="#b06fff" />
-          </linearGradient>
-        </defs>
 
-        <line x1={chart.leftPad} y1={chart.topPad + chart.plotH} x2={chart.chartW - 14} y2={chart.topPad + chart.plotH} className="runs-axis" />
+      <div className="runs-chart-wrap">
+        <svg
+          ref={svgRef}
+          className="runs-chart"
+          viewBox={`0 0 ${chart.width} ${chart.height}`}
+          aria-label="Recent runs chart"
+          onPointerMove={handlePointerMove}
+          onPointerLeave={() => {
+            setHoveredIndex(null);
+            setTooltipPos(null);
+          }}
+        >
+          <defs>
+            <linearGradient id={`runs-wpm-grad-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style={{ stopColor: "var(--runs-wpm-a)" }} stopOpacity="0.56" />
+              <stop offset="100%" style={{ stopColor: "var(--runs-wpm-b)" }} stopOpacity="0.02" />
+            </linearGradient>
+            <linearGradient id={`runs-acc-grad-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style={{ stopColor: "var(--runs-acc-a)" }} stopOpacity="0.46" />
+              <stop offset="100%" style={{ stopColor: "var(--runs-acc-b)" }} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
 
-        {chart.points.map((point, index) => (
-          <g key={`${point.date.toISOString()}-${index}`}>
-            {viewMode !== "acc" ? (
-              <rect
-                x={point.x - 10}
-                y={chart.topPad + chart.plotH - point.barHeight}
-                width={20}
-                height={point.barHeight}
-                rx={6}
-                fill="url(#runs-bar-grad)"
-                opacity={0.86}
-              >
-                <title>{`${point.wpm} WPM • ${point.accuracy}% ACC`}</title>
-              </rect>
-            ) : null}
-            <text x={point.x} y={chart.chartH - 12} textAnchor="middle" className="runs-x-label">
-              {point.label}
+        <rect
+          x={chart.left}
+          y={chart.top}
+          width={chart.plotW}
+          height={chart.plotH}
+          rx={14}
+          className="runs-plot-bg"
+        />
+
+        {Array.from({ length: yTicks + 1 }).map((_, index) => {
+          const ratio = index / yTicks;
+          const y = chart.top + chart.plotH * ratio;
+          const value = Math.round(chart.wpmCeil - (chart.wpmCeil - chart.wpmFloor) * ratio);
+          return (
+            <g key={`y-${index}`}>
+              <line x1={chart.left} y1={y} x2={chart.width - chart.right} y2={y} className="runs-grid-line" />
+              <text x={chart.left - 8} y={y + 4} textAnchor="end" className="runs-y-label">
+                {value}
+              </text>
+            </g>
+          );
+        })}
+
+        {accTicks.map((value) => {
+          const y = chart.top + (1 - value / 100) * chart.plotH;
+          return (
+            <text key={`acc-${value}`} x={chart.width - chart.right + 8} y={y + 4} className="runs-y-label runs-y-label-right">
+              {value}%
             </text>
+          );
+        })}
+
+          <g key={seriesKey} className="runs-series">
+            {viewMode !== "acc" ? (
+              <>
+                <path d={chart.wpmAreaPath} fill={`url(#runs-wpm-grad-${uid})`} className="runs-area wpm" />
+                <path d={chart.wpmLinePath} className="runs-line wpm" />
+              </>
+            ) : null}
+
+            {viewMode !== "wpm" ? (
+              <>
+                <path d={chart.accAreaPath} fill={`url(#runs-acc-grad-${uid})`} className="runs-area acc" />
+                <path d={chart.accLinePath} className="runs-line acc" />
+              </>
+            ) : null}
+
+            {chart.points.map((point, index) => (
+              <g key={`${point.date.toISOString()}-${index}`}>
+                {viewMode !== "acc" ? (
+                  <circle cx={point.x} cy={point.yWpm} r={4.3} className="runs-dot wpm">
+                    <title>{`${point.wpm} WPM`}</title>
+                  </circle>
+                ) : null}
+
+                {viewMode !== "wpm" ? (
+                  <circle cx={point.x} cy={point.yAcc} r={4.1} className="runs-dot acc">
+                    <title>{`${point.accuracy}% ACC`}</title>
+                  </circle>
+                ) : null}
+
+                <text x={point.x} y={chart.height - 14} textAnchor="middle" className="runs-x-label">
+                  {point.label}
+                </text>
+              </g>
+            ))}
           </g>
-        ))}
 
-        {viewMode !== "wpm" ? <path d={chart.linePath} className="runs-acc-line" /> : null}
+          {activePoint ? (
+            <>
+              <line
+                className="runs-crosshair-line"
+                x1={activePoint.x}
+                y1={chart.top}
+                x2={activePoint.x}
+                y2={chart.top + chart.plotH}
+              />
+              {viewMode !== "acc" ? (
+                <line
+                  className="runs-crosshair-line soft"
+                  x1={chart.left}
+                  y1={activePoint.yWpm}
+                  x2={chart.width - chart.right}
+                  y2={activePoint.yWpm}
+                />
+              ) : null}
+              {viewMode !== "wpm" ? (
+                <line
+                  className="runs-crosshair-line soft acc"
+                  x1={chart.left}
+                  y1={activePoint.yAcc}
+                  x2={chart.width - chart.right}
+                  y2={activePoint.yAcc}
+                />
+              ) : null}
+              {viewMode !== "acc" ? (
+                <circle cx={activePoint.x} cy={activePoint.yWpm} r={6.2} className="runs-dot-focus wpm" />
+              ) : null}
+              {viewMode !== "wpm" ? (
+                <circle cx={activePoint.x} cy={activePoint.yAcc} r={5.9} className="runs-dot-focus acc" />
+              ) : null}
+            </>
+          ) : null}
+        </svg>
 
-        {viewMode !== "wpm"
-          ? chart.points.map((point, index) => (
-              <circle key={`acc-${point.date.toISOString()}-${index}`} cx={point.x} cy={point.accY} r={4.2} className="runs-acc-dot">
-                <title>{`${point.accuracy}% accuracy`}</title>
-              </circle>
-            ))
-          : null}
-      </svg>
+        {activePoint && tooltipStyle ? (
+          <div
+            className="runs-tooltip"
+            style={tooltipStyle}
+          >
+            <p className="runs-tooltip-date">{activePoint.date.toLocaleString()}</p>
+            <p className="runs-tooltip-line"><span>WPM</span><strong>{activePoint.wpm}</strong></p>
+            <p className="runs-tooltip-line"><span>Accuracy</span><strong>{activePoint.accuracy}%</strong></p>
+          </div>
+        ) : null}
+      </div>
+
       {viewMode === "both" ? (
         <div className="runs-chart-legend">
           <span className="runs-legend-item">

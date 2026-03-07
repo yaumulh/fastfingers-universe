@@ -13,6 +13,7 @@ export async function getSessionUserWithRole(): Promise<{
   id: string;
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
   needsDisplayNameSetup: boolean;
   role: AppUserRole;
 } | null> {
@@ -23,7 +24,7 @@ export async function getSessionUserWithRole(): Promise<{
 
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { id: true, username: true, displayName: true, role: true, isActive: true },
+    select: { id: true, username: true, displayName: true, avatarUrl: true, role: true, isActive: true },
   });
 
   if (!user || !user.isActive) {
@@ -34,6 +35,7 @@ export async function getSessionUserWithRole(): Promise<{
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
     needsDisplayNameSetup: !user.displayName,
     role: normalizeRole(user.role),
   };
@@ -43,6 +45,7 @@ export async function requireAdminSession(): Promise<{
   id: string;
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
   needsDisplayNameSetup: boolean;
   role: "admin";
 } | null> {

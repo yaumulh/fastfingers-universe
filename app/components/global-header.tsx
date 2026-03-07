@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTIVE_MULTIPLAYER_ROOM_KEY, REQUIRE_EXIT_EVENT } from "@/lib/multiplayer-room-lock";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
+import { MESSAGES_UNREAD_CHANGED_EVENT, NOTIFICATIONS_UNREAD_CHANGED_EVENT } from "@/lib/ui-sync-events";
 import { BellIcon, ChatIcon, EyeIcon, EyeOffIcon, SparkIcon, UsersIcon, UserIcon } from "./icons";
 
 const NAV_LINKS = [
@@ -106,9 +107,12 @@ export default function GlobalHeader() {
   const [brandingReady, setBrandingReady] = useState(false);
   const [notificationUnread, setNotificationUnread] = useState(0);
   const [notificationPulse, setNotificationPulse] = useState(false);
+  const [messagesUnread, setMessagesUnread] = useState(0);
+  const [messagesPulse, setMessagesPulse] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeValue>("nebula");
   const previousUnreadRef = useRef(0);
+  const previousMessagesUnreadRef = useRef(0);
   const uiModalOpen = authModalOpen || displayNameModalOpen;
 
   function applyTheme(nextTheme: ThemeValue): void {
@@ -315,6 +319,7 @@ export default function GlobalHeader() {
   useEffect(() => {
     if (!sessionUser?.id) {
       setNotificationUnread(0);
+      setMessagesUnread(0);
       return;
     }
 
@@ -333,14 +338,55 @@ export default function GlobalHeader() {
       }
     }
 
+    async function loadMessagesSummary(): Promise<void> {
+      try {
+        const response = await fetch("/api/messages/conversations", { cache: "no-store" });
+        if (!response.ok) return;
+        const json = (await response.json()) as { data?: Array<{ unreadCount?: number }> };
+        if (!cancelled) {
+          const unread = Array.isArray(json.data)
+            ? json.data.reduce((sum, item) => sum + Math.max(0, Number(item.unreadCount ?? 0)), 0)
+            : 0;
+          setMessagesUnread(unread);
+        }
+      } catch {
+        if (!cancelled) setMessagesUnread(0);
+      }
+    }
+
     void loadNotificationsSummary();
+    void loadMessagesSummary();
     const interval = window.setInterval(() => {
       void loadNotificationsSummary();
+      void loadMessagesSummary();
     }, 12_000);
+
+    function onNotificationsUnreadChanged(event: Event): void {
+      const custom = event as CustomEvent<{ count?: number }>;
+      if (typeof custom.detail?.count === "number") {
+        setNotificationUnread(Math.max(0, Math.floor(custom.detail.count)));
+      } else {
+        void loadNotificationsSummary();
+      }
+    }
+
+    function onMessagesUnreadChanged(event: Event): void {
+      const custom = event as CustomEvent<{ count?: number }>;
+      if (typeof custom.detail?.count === "number") {
+        setMessagesUnread(Math.max(0, Math.floor(custom.detail.count)));
+      } else {
+        void loadMessagesSummary();
+      }
+    }
+
+    window.addEventListener(NOTIFICATIONS_UNREAD_CHANGED_EVENT, onNotificationsUnreadChanged as EventListener);
+    window.addEventListener(MESSAGES_UNREAD_CHANGED_EVENT, onMessagesUnreadChanged as EventListener);
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_UNREAD_CHANGED_EVENT, onNotificationsUnreadChanged as EventListener);
+      window.removeEventListener(MESSAGES_UNREAD_CHANGED_EVENT, onMessagesUnreadChanged as EventListener);
     };
   }, [sessionUser?.id]);
 
@@ -354,6 +400,17 @@ export default function GlobalHeader() {
     }
     previousUnreadRef.current = notificationUnread;
   }, [notificationUnread]);
+
+  useEffect(() => {
+    const previous = previousMessagesUnreadRef.current;
+    if (messagesUnread > previous) {
+      setMessagesPulse(true);
+      const timer = window.setTimeout(() => setMessagesPulse(false), 760);
+      previousMessagesUnreadRef.current = messagesUnread;
+      return () => window.clearTimeout(timer);
+    }
+    previousMessagesUnreadRef.current = messagesUnread;
+  }, [messagesUnread]);
 
   const authTitle = useMemo(
     () => (authMode === "register" ? "Create Account" : "Login"),
@@ -378,6 +435,39 @@ export default function GlobalHeader() {
     () => getPasswordRequirements(formPassword),
     [formPassword],
   );
+
+  async function openMessagesSmart(): Promise<void> {
+    if (!sessionUser?.id) {
+      router.push("/messages");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/messages/conversations", { cache: "no-store" });
+      const json = (await response.json()) as {
+        data?: Array<{ id: string; unreadCount?: number; lastMessageAt?: string | null; updatedAt?: string | null }>;
+      };
+      const unreadList = (json.data ?? []).filter((item) => Math.max(0, Number(item.unreadCount ?? 0)) > 0);
+      const newestUnread = unreadList.sort((a, b) => {
+        const aMs = new Date(a.lastMessageAt ?? a.updatedAt ?? 0).getTime() || 0;
+        const bMs = new Date(b.lastMessageAt ?? b.updatedAt ?? 0).getTime() || 0;
+        return bMs - aMs;
+      })[0];
+      if (newestUnread?.id) {
+        router.push(`/messages?conversation=${encodeURIComponent(newestUnread.id)}`);
+        return;
+      }
+      router.push("/messages");
+    } catch {
+      router.push("/messages");
+    }
+  }
+
+  function handleMessagesIconClick(event: React.MouseEvent<HTMLAnchorElement>): void {
+    event.preventDefault();
+    void openMessagesSmart();
+  }
+
   function shouldBlockNavigation(targetHref: string): boolean {
     if (!pathname.startsWith("/multiplayer")) {
       return false;
@@ -617,12 +707,14 @@ export default function GlobalHeader() {
             <>
               <Link
                 href="/messages"
-                className="auth-top-icon-btn auth-message-btn"
+                className={`auth-top-icon-btn auth-message-btn ${messagesPulse ? "notif-pulse" : ""}`}
+                onClick={handleMessagesIconClick}
                 aria-label="Open messages"
                 data-tooltip="Messages"
                 title="Messages"
               >
                 <ChatIcon className="ui-icon auth-top-icon-svg" />
+                {messagesUnread > 0 ? <span className="auth-message-badge">{Math.min(messagesUnread, 99)}</span> : null}
               </Link>
               <Link
                 href="/notifications"

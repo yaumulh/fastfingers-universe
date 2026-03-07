@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -28,7 +27,7 @@ import {
 } from "./word-banks";
 import { UserRankBadge } from "../components/user-rank-badge";
 import { LanguageFlagIcon } from "../components/language-flag-icon";
-import { FriendProfileModal } from "../components/friend-profile-modal";
+import { UserAvatar } from "../components/user-avatar";
 import { getTypingXpGain } from "@/lib/user-level";
 
 type TestStatus = "idle" | "running" | "finished";
@@ -37,17 +36,6 @@ type TypingVariant = "normal" | "advanced";
 type TopRankingPeriod = "today" | "weekly" | "all";
 type WordBankMode = "normal" | "advanced";
 type SessionUser = { id: string; username: string; displayName?: string | null; needsDisplayNameSetup?: boolean };
-type UserTag = {
-  code:
-    | "role_mod"
-    | "lang_daily_1"
-    | "lang_weekly_1"
-    | "lang_alltime_1"
-    | "adv_daily_1"
-    | "adv_weekly_1"
-    | "adv_alltime_1";
-  label: string;
-};
 type GhostReplay = {
   bestWpm: number;
   duration: number;
@@ -65,6 +53,7 @@ type TypingLeaderboardRow = {
     id: string;
     username: string;
     displayName?: string | null;
+    avatarUrl?: string | null;
     tags?: Array<{
       code:
         | "role_mod"
@@ -77,40 +66,6 @@ type TypingLeaderboardRow = {
       label: string;
     }>;
   } | null;
-};
-type FriendProfileData = {
-  user: {
-    id: string;
-    username: string;
-    displayName?: string | null;
-    rating: number;
-    trustScore: number;
-    streakDays: number;
-  };
-  summary: {
-    totalTests: number;
-    avgWpm: number;
-    avgAccuracy: number;
-    bestWpm: number;
-    competitionJoined: number;
-    competitionWins: number;
-  };
-  trend: Array<{
-    date: string;
-    wpm: number;
-    accuracy: number;
-  }>;
-  recentCompetitions: Array<{
-    competitionId: string;
-    title: string;
-    language: string;
-    endedAt: string;
-    status: string;
-    bestWpm: number;
-    bestAccuracy: number;
-    bestResultAt: string | null;
-    isWinner: boolean;
-  }>;
 };
 
 type SaveProgress = {
@@ -288,7 +243,6 @@ function isSameLeaderboard(
 }
 
 export function TypingExperience({ variant = "normal" }: { variant?: TypingVariant }) {
-  const router = useRouter();
   const typingInputRef = useRef<HTMLInputElement>(null);
   const languageSelectRef = useRef<HTMLDivElement>(null);
   const difficulty: Difficulty = variant === "advanced" ? "hard" : "medium";
@@ -313,6 +267,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState<SaveProgress | null>(null);
+  const [levelUpToast, setLevelUpToast] = useState<string | null>(null);
   const [animatedXp, setAnimatedXp] = useState(0);
   const animatedXpRef = useRef(0);
   const [hasSavedCurrentRun, setHasSavedCurrentRun] = useState(false);
@@ -326,17 +281,12 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   const [dailyLeaderboard, setDailyLeaderboard] = useState<TypingLeaderboardRow[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
-  const [friendProfileOpen, setFriendProfileOpen] = useState(false);
-  const [friendProfileLoading, setFriendProfileLoading] = useState(false);
-  const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
-  const [friendProfileData, setFriendProfileData] = useState<FriendProfileData | null>(null);
-  const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
-  const [messageActionBusy, setMessageActionBusy] = useState(false);
   const [uiModalOpen, setUiModalOpen] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
   const lastActivityAtRef = useRef<number | null>(null);
   const hasLoadedLeaderboardRef = useRef(false);
   const prevBlockingModalRef = useRef(false);
+  const lastLevelToastRef = useRef(0);
 
   const elapsedSeconds = duration - timeLeft;
   const elapsedSecondsSafe = Math.max(elapsedSeconds, 1);
@@ -346,7 +296,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   );
   const progress = clampPercent((currentWordIndex / words.length) * 100);
   const showResultModal = status === "finished" && timeLeft === 0;
-  const hasBlockingModal = uiModalOpen || friendProfileOpen || showResultModal;
+  const hasBlockingModal = uiModalOpen || showResultModal;
   const estimatedXp = getTypingXpGain({
     wpm,
     accuracy,
@@ -771,6 +721,19 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   }, [showResultModal, authUser, xpTarget]);
 
   useEffect(() => {
+    if (!saveProgress?.leveledUp) {
+      return;
+    }
+    if (lastLevelToastRef.current === saveProgress.level) {
+      return;
+    }
+    lastLevelToastRef.current = saveProgress.level;
+    setLevelUpToast(`Congratulations! You reached Level ${saveProgress.level}.`);
+    const timer = window.setTimeout(() => setLevelUpToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [saveProgress?.leveledUp, saveProgress?.level]);
+
+  useEffect(() => {
     if (status !== "finished" || isSaving || hasSavedCurrentRun) {
       return;
     }
@@ -926,76 +889,6 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     if (currentWpm >= 70) return "B";
     if (currentWpm >= 50) return "C";
     return "D";
-  }
-
-  async function openFriendProfile(userId: string): Promise<void> {
-    setFriendProfileOpen(true);
-    setFriendProfileLoading(true);
-    setFriendProfileError(null);
-    setFriendProfileData(null);
-    setFriendProfileTags([]);
-
-    try {
-      const response = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
-      const json = (await response.json()) as { data?: FriendProfileData; error?: string };
-
-      if (!response.ok || !json.data) {
-        if (response.status === 401) {
-          window.dispatchEvent(new CustomEvent("ff:require-login"));
-        }
-        throw new Error(json.error ?? "Failed to load profile.");
-      }
-
-      setFriendProfileData(json.data);
-      try {
-        const query = new URLSearchParams({
-          language,
-          names: json.data.user.username,
-        });
-        const tagResponse = await fetch(`/api/user-language-tags?${query.toString()}`, { cache: "no-store" });
-        if (tagResponse.ok) {
-          const tagJson = (await tagResponse.json()) as { data: Record<string, UserTag[]> };
-          setFriendProfileTags(tagJson.data?.[json.data.user.username] ?? []);
-        }
-      } catch {
-        setFriendProfileTags([]);
-      }
-    } catch (error) {
-      setFriendProfileError(error instanceof Error ? error.message : "Failed to load profile.");
-    } finally {
-      setFriendProfileLoading(false);
-    }
-  }
-
-  async function handleMessageFromProfile(): Promise<void> {
-    if (!friendProfileData?.user.id) return;
-
-    try {
-      setMessageActionBusy(true);
-      const response = await fetch("/api/messages/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: friendProfileData.user.id }),
-      });
-      const json = (await response.json()) as { data?: { id: string }; error?: string };
-      if (!response.ok || !json.data?.id) {
-        if (response.status === 401) {
-          window.dispatchEvent(new CustomEvent("ff:require-login"));
-          throw new Error("Login first to send message.");
-        }
-        throw new Error(json.error ?? "Failed to open chat.");
-      }
-
-      setFriendProfileOpen(false);
-      setFriendProfileData(null);
-      setFriendProfileError(null);
-      setFriendProfileTags([]);
-      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
-    } catch (error) {
-      setFriendProfileError(error instanceof Error ? error.message : "Failed to open chat.");
-    } finally {
-      setMessageActionBusy(false);
-    }
   }
 
   useEffect(() => {
@@ -1190,7 +1083,17 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
         ) : null}
         <p>
           <UsersIcon className="ui-icon" /> Player:{" "}
-          <span className="typing-player-name-linklike">{authUser?.displayName ?? authUser?.username ?? "Guest"}</span> |{" "}
+          {authUser?.username ? (
+            <Link
+              className="typing-player-name-linklike"
+              href={`/u/${encodeURIComponent(authUser.username)}`}
+            >
+              {authUser.displayName ?? authUser.username}
+            </Link>
+          ) : (
+            <span className="typing-player-name-linklike">Guest</span>
+          )}{" "}
+          |{" "}
           <GlobeIcon className="ui-icon" /> Language: {LANGUAGE_LABELS[language]} |{" "}
           <SparkIcon className="ui-icon" /> Mode: {variant} |{" "}
           <GaugeIcon className="ui-icon" /> Progress: {Math.round(progress)}% |{" "}
@@ -1340,14 +1243,16 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
                 </span>
                 <span className="typing-mini-user">
                   <span className="typing-mini-name-wrap">
+                    <UserAvatar
+                      username={row.user?.username}
+                      displayName={row.user?.displayName}
+                      avatarUrl={row.user?.avatarUrl}
+                      size="xs"
+                    />
                     {row.user?.id ? (
-                      <button
-                        type="button"
-                        className="typing-mini-name typing-mini-name-btn"
-                        onClick={() => void openFriendProfile(row.user!.id)}
-                      >
+                      <Link className="typing-mini-name typing-mini-name-btn" href={`/u/${encodeURIComponent(row.user.username)}`}>
                         {row.user.displayName ?? row.user.username}
-                      </button>
+                      </Link>
                     ) : (
                       <span className="typing-mini-name">Guest</span>
                     )}
@@ -1434,7 +1339,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
                     transition={{ duration: 0.38, ease: "easeOut" }}
                   >
                     <TrophyIcon className="ui-icon" />
-                    <span>Level Up! You reached Level {saveProgress.level}</span>
+                    <span>Congratulations! Level Up to {saveProgress.level}</span>
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -1447,7 +1352,9 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
                     : saveError
                       ? `Save error: ${saveError}`
                       : saveProgress
-                        ? `Result saved • +${saveProgress.xpGained} XP • Level ${saveProgress.level}${saveProgress.leveledUp ? " (Level Up!)" : ""}`
+                        ? saveProgress.leveledUp
+                          ? `Result saved • +${saveProgress.xpGained} XP • Congratulations, you reached Level ${saveProgress.level}!`
+                          : `Result saved • +${saveProgress.xpGained} XP • Level ${saveProgress.level}`
                         : "Result saved to leaderboard."}
               </p>
 
@@ -1468,24 +1375,21 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
         )}
       </AnimatePresence>
 
-      <FriendProfileModal
-        open={friendProfileOpen}
-        loading={friendProfileLoading}
-        error={friendProfileError}
-        data={friendProfileData}
-        tags={friendProfileTags}
-        languageForTags={language}
-        messageBusy={messageActionBusy}
-        onMessage={() => {
-          void handleMessageFromProfile();
-        }}
-        onClose={() => {
-          setFriendProfileOpen(false);
-          setFriendProfileData(null);
-          setFriendProfileError(null);
-          setFriendProfileTags([]);
-        }}
-      />
+      <AnimatePresence>
+        {levelUpToast ? (
+          <motion.div
+            className="levelup-toast"
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <TrophyIcon className="ui-icon" />
+            <span>{levelUpToast}</span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
     </main>
   );
 }

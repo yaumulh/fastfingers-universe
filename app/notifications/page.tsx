@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BellIcon, CheckIcon } from "@/app/components/icons";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
+import { emitNotificationsUnreadChanged } from "@/lib/ui-sync-events";
 
 type SessionUser = {
   id?: string;
@@ -62,6 +63,7 @@ export default function NotificationsPage() {
     if (!sessionUser?.id) {
       setItems([]);
       setUnreadCount(0);
+      emitNotificationsUnreadChanged(0);
       return;
     }
 
@@ -76,8 +78,10 @@ export default function NotificationsPage() {
           throw new Error(json.error ?? "Failed to load notifications.");
         }
         if (!cancelled) {
+          const unread = Math.max(0, Number(json.summary?.unreadCount ?? 0));
           setItems(json.data);
-          setUnreadCount(Math.max(0, Number(json.summary?.unreadCount ?? 0)));
+          setUnreadCount(unread);
+          emitNotificationsUnreadChanged(unread);
         }
       } catch (fetchError) {
         if (!cancelled) {
@@ -118,7 +122,9 @@ export default function NotificationsPage() {
           prev.map((item) => (idSet.has(item.id) ? { ...item, isRead: true, readAt: item.readAt ?? new Date().toISOString() } : item)),
         );
       }
-      setUnreadCount(Math.max(0, Number(json.data?.unreadCount ?? 0)));
+      const unread = Math.max(0, Number(json.data?.unreadCount ?? 0));
+      setUnreadCount(unread);
+      emitNotificationsUnreadChanged(unread);
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : "Failed to mark notifications.");
     } finally {
@@ -210,4 +216,3 @@ export default function NotificationsPage() {
     </main>
   );
 }
-

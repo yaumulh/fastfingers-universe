@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -19,7 +18,6 @@ import {
 } from "@/app/components/icons";
 import { UserRankBadge } from "@/app/components/user-rank-badge";
 import { LanguageFlagIcon } from "@/app/components/language-flag-icon";
-import { FriendProfileModal } from "@/app/components/friend-profile-modal";
 import { REQUIRE_LOGIN_EVENT } from "@/lib/auth-ui-events";
 import {
   BANK_SIZE_PER_LEVEL,
@@ -33,17 +31,6 @@ import {
 type SessionUser = { id: string; username: string; displayName?: string | null; needsDisplayNameSetup?: boolean };
 type WordState = "pending" | "correct" | "incorrect";
 type RunStatus = "idle" | "running" | "finished";
-type UserTag = {
-  code:
-    | "role_mod"
-    | "lang_daily_1"
-    | "lang_weekly_1"
-    | "lang_alltime_1"
-    | "adv_daily_1"
-    | "adv_weekly_1"
-    | "adv_alltime_1";
-  label: string;
-};
 
 type CompetitionParticipant = {
   id: string;
@@ -93,35 +80,6 @@ type CompetitionItem = {
     }>;
   };
   participants: CompetitionParticipant[];
-};
-
-type ProfileData = {
-  user: { id: string; username: string; displayName?: string | null; rating: number; trustScore: number };
-  summary: {
-    totalTests: number;
-    avgWpm: number;
-    bestWpm: number;
-    avgAccuracy: number;
-    competitionJoined: number;
-    competitionWins: number;
-  };
-  trend: Array<{
-    date: string;
-    wpm: number;
-    accuracy: number;
-    mode?: "normal" | "advanced";
-  }>;
-  recentCompetitions: Array<{
-    competitionId: string;
-    title: string;
-    language: string;
-    endedAt: string;
-    status: string;
-    bestWpm: number;
-    bestAccuracy: number;
-    bestResultAt: string | null;
-    isWinner: boolean;
-  }>;
 };
 
 const DURATION_SECONDS = 60;
@@ -217,7 +175,6 @@ function buildLineRanges(words: string[]) {
 }
 
 export default function CompetitionRoomPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const roomId = params.id;
   const inputRef = useRef<HTMLInputElement>(null);
   const seededRoomRef = useRef<string | null>(null);
@@ -247,10 +204,6 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [customNormalSeed, setCustomNormalSeed] = useState<string[] | null>(null);
 
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [profileTags, setProfileTags] = useState<UserTag[]>([]);
-  const [messageActionBusy, setMessageActionBusy] = useState(false);
   const [uiModalOpen, setUiModalOpen] = useState(false);
 
   const selectedEndsAtMs = useMemo(() => (competition ? new Date(competition.endsAt).getTime() : 0), [competition]);
@@ -289,7 +242,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const accuracy = Math.round((correctChars / Math.max(typedChars, 1)) * 100);
   const progress = Math.min(Math.max((currentWordIndex / Math.max(words.length, 1)) * 100, 0), 100);
   const showResultModal = status === "finished" && timeLeft === 0 && isResultModalOpen;
-  const hasBlockingModal = uiModalOpen || profileOpen || showResultModal;
+  const hasBlockingModal = uiModalOpen || showResultModal;
 
   const { ranges, wordToLine } = useMemo(() => buildLineRanges(words), [words]);
   const lineIndex = useMemo(() => (ranges.length ? wordToLine[Math.min(currentWordIndex, words.length - 1)] ?? 0 : 0), [ranges.length, wordToLine, currentWordIndex, words.length]);
@@ -592,62 +545,6 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     if (status === "running") setStatus("idle");
   }, [selectedEnded, status]);
 
-  async function openProfile(userId: string) {
-    const res = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
-    const json = (await res.json()) as { data?: ProfileData; error?: string };
-    if (!res.ok || !json.data) {
-      if (res.status === 401) window.dispatchEvent(new CustomEvent(REQUIRE_LOGIN_EVENT));
-      setActionError(json.error ?? "Failed to load profile.");
-      return;
-    }
-    setProfileData(json.data);
-    try {
-      const query = new URLSearchParams({
-        language: competition?.language ?? "en",
-        names: json.data.user.username,
-      });
-      const tagRes = await fetch(`/api/user-language-tags?${query.toString()}`, { cache: "no-store" });
-      if (tagRes.ok) {
-        const tagJson = (await tagRes.json()) as { data: Record<string, UserTag[]> };
-        setProfileTags(tagJson.data?.[json.data.user.username] ?? []);
-      } else {
-        setProfileTags([]);
-      }
-    } catch {
-      setProfileTags([]);
-    }
-    setProfileOpen(true);
-  }
-
-  async function handleMessageFromProfile(): Promise<void> {
-    if (!profileData?.user.id) return;
-
-    try {
-      setMessageActionBusy(true);
-      const response = await fetch("/api/messages/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: profileData.user.id }),
-      });
-      const json = (await response.json()) as { data?: { id: string }; error?: string };
-      if (!response.ok || !json.data?.id) {
-        if (response.status === 401) {
-          window.dispatchEvent(new CustomEvent(REQUIRE_LOGIN_EVENT));
-          throw new Error("Login first to send message.");
-        }
-        throw new Error(json.error ?? "Failed to open chat.");
-      }
-
-      setProfileOpen(false);
-      setProfileTags([]);
-      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Failed to open chat.");
-    } finally {
-      setMessageActionBusy(false);
-    }
-  }
-
   function startRun() {
     if (!competition || !joined || selectedEnded) return;
     const staticWords =
@@ -752,7 +649,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
                   <article className="card glass"><span className="ui-icon-badge"><CheckIcon className="ui-icon" /></span><p className="kpi">{accuracy}%</p><p className="kpi-label">Accuracy</p></article>
                   <article className="card glass"><span className="ui-icon-badge"><TimerIcon className="ui-icon" /></span><p className="kpi">{formatSeconds(timeLeft)}</p><p className="kpi-label">Time Left</p></article>
                 </div>
-                <div className="typing-progress card glass"><div className="typing-progress-track"><div className="typing-progress-bar" style={{ width: `${progress}%` }} /></div><p><UsersIcon className="ui-icon" /> Player: {authUser?.displayName ?? authUser?.username ?? "Guest"} | <GaugeIcon className="ui-icon" /> Progress: {Math.round(progress)}% | <AlertIcon className="ui-icon" /> Mistakes: {mistakes}</p></div>
+                <div className="typing-progress card glass"><div className="typing-progress-track"><div className="typing-progress-bar" style={{ width: `${progress}%` }} /></div><p><UsersIcon className="ui-icon" /> Player: {authUser?.username ? <Link className="typing-player-name-linklike" href={`/u/${encodeURIComponent(authUser.username)}`}>{authUser.displayName ?? authUser.username}</Link> : "Guest"} | <GaugeIcon className="ui-icon" /> Progress: {Math.round(progress)}% | <AlertIcon className="ui-icon" /> Mistakes: {mistakes}</p></div>
                 <div className="typing-arena card glass">
                   <div className="typing-target-viewport">
                     <motion.div key={visibleStartLine} className="typing-target typing-target-lines typing-target-layer" initial={{ y: 4 }} animate={{ y: 0 }} transition={{ duration: 0.045, ease: "linear" }}>
@@ -821,7 +718,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
                 <article key={p.id} className={`competition-rank-row ${selectedEnded && i === 0 ? "winner" : ""}`}>
                   <span className={`typing-mini-rank ${i < 3 ? `medal medal-${i + 1}` : ""}`}>{i < 3 ? (i === 0 ? "1st" : i === 1 ? "2nd" : "3rd") : `#${i + 1}`}</span>
                   <span className="user-name-inline-with-rank">
-                    <button type="button" className="competition-profile-link" onClick={() => void openProfile(p.userId)}>{p.displayName ?? p.username}</button>
+                    <Link className="competition-profile-link" href={`/u/${encodeURIComponent(p.username)}`}>{p.displayName ?? p.username}</Link>
                     {p.tags && p.tags.length > 0 ? (
                       <>
                         <span className="user-rank-flag-badge" title={LANGUAGE_LABELS[competition.language]}>
@@ -862,22 +759,6 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
         </div>
       )}
 
-      <FriendProfileModal
-        open={profileOpen}
-        loading={false}
-        error={null}
-        data={profileData}
-        tags={profileTags}
-        languageForTags={competition?.language ?? "en"}
-        messageBusy={messageActionBusy}
-        onMessage={() => {
-          void handleMessageFromProfile();
-        }}
-        onClose={() => {
-          setProfileOpen(false);
-          setProfileTags([]);
-        }}
-      />
     </main>
   );
 }

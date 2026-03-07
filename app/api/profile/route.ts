@@ -105,6 +105,7 @@ export async function GET() {
         id: user.id,
         username: user.username,
         displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
         displayNameUpdatedAt: user.displayNameUpdatedAt?.toISOString() ?? null,
         displayNameChangeAvailableAt: user.displayNameUpdatedAt
           ? new Date(user.displayNameUpdatedAt.getTime() + DISPLAY_NAME_COOLDOWN_MS).toISOString()

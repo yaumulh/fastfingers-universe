@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   });
 
   const nextHash = hashPassword(password);
-  let user: { id: string; username: string; displayName: string | null };
+  let user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 
   if (!existing) {
     user = await prisma.user.create({
@@ -47,13 +47,13 @@ export async function POST(request: Request) {
         username,
         passwordHash: nextHash,
       },
-      select: { id: true, username: true, displayName: true },
+      select: { id: true, username: true, displayName: true, avatarUrl: true },
     });
   } else if (!existing.passwordHash) {
     user = await prisma.user.update({
       where: { id: existing.id },
       data: { passwordHash: nextHash },
-      select: { id: true, username: true, displayName: true },
+      select: { id: true, username: true, displayName: true, avatarUrl: true },
     });
   } else {
     return NextResponse.json({ error: "Username already registered." }, { status: 409 });

@@ -5,6 +5,7 @@ import { ChatIcon, GaugeIcon, TrophyIcon, UsersIcon } from "./icons";
 import { LanguageFlagIcon } from "./language-flag-icon";
 import { RecentRunsChart } from "./recent-runs-chart";
 import { UserRankBadge } from "./user-rank-badge";
+import { UserAvatar } from "./user-avatar";
 import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
 
 type UserTag = {
@@ -24,6 +25,7 @@ type FriendProfileData = {
     id: string;
     username: string;
     displayName?: string | null;
+    avatarUrl?: string | null;
     rating: number;
     trustScore: number;
     totalXp?: number;
@@ -133,6 +135,12 @@ export function FriendProfileModal({
               <article className="card glass">
                 <p className="kpi">
                   <span className="profile-name-with-rank">
+                    <UserAvatar
+                      username={data.user.username}
+                      displayName={data.user.displayName}
+                      avatarUrl={data.user.avatarUrl}
+                      size="sm"
+                    />
                     <span>{data.user.displayName ?? data.user.username}</span>
                     {tags.length > 0 ? (
                       <>

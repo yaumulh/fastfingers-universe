@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 import GlobalHeader from "./components/global-header";
 import SideRailNav from "./components/side-rail-nav";
+import { getBrandingData } from "@/lib/branding";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -19,22 +20,36 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Fast-fingers Universe",
-    template: "%s | Fast-fingers Universe",
-  },
-  description:
-    "Modern typing platform for speed tests, multiplayer battles, and ranked competition.",
-  icons: {
-    icon: [
-      { url: "/images/ff-transparent.png", type: "image/png" },
-      { url: "/favicon.ico" },
-    ],
-    shortcut: ["/images/ff-transparent.png"],
-    apple: [{ url: "/images/ff-transparent.png", type: "image/png" }],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  let favicon = "/images/ff-transparent.png";
+  let appleTouch = "/images/ff-transparent.png";
+
+  try {
+    const branding = await getBrandingData();
+    if (branding.logos.favicon) {
+      favicon = branding.logos.favicon;
+    }
+    if (branding.logos.appleTouch) {
+      appleTouch = branding.logos.appleTouch;
+    }
+  } catch {
+    // Keep static fallback if branding storage is unavailable.
+  }
+
+  return {
+    title: {
+      default: "Fast-fingers Universe",
+      template: "%s | Fast-fingers Universe",
+    },
+    description:
+      "Modern typing platform for speed tests, multiplayer battles, and ranked competition.",
+    icons: {
+      icon: [{ url: favicon }],
+      shortcut: [favicon],
+      apple: [{ url: appleTouch }],
+    },
+  };
+}
 
 export default function RootLayout({
   children,

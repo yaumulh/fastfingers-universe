@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createRateLimitResponse, enforceRateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { getOrSetCache } from "@/lib/response-cache";
+import { buildUserLanguageTags, getLanguageLeadersMap } from "@/lib/user-language-tags";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     weekStart.setDate(weekStart.getDate() - 6);
     const seasonStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const [totalUsers, testsTodayAgg, testsTodayCount, activeChallenges, seasonTop, languageToday, languageWeekly, languageAllTime] = await Promise.all([
+    const [totalUsers, testsTodayAgg, testsTodayCount, activeChallenges, seasonTop, languageToday, languageWeekly, languageAllTime, latestTypingRuns] = await Promise.all([
       prisma.user.count(),
       prisma.testResult.aggregate({
         where: { createdAt: { gte: today } },
@@ -59,7 +60,31 @@ export async function GET(request: Request) {
         orderBy: { _count: { language: "desc" } },
         take: 5,
       }),
+      prisma.testResult.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          wpm: true,
+          language: true,
+          difficulty: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              role: true,
+            },
+          },
+        },
+      }),
     ]);
+
+    const languageLeadersMap = await getLanguageLeadersMap(
+      latestTypingRuns.map((row) => row.language),
+    );
 
     return {
       totalUsers,
@@ -85,6 +110,25 @@ export async function GET(request: Request) {
           count: row._count.language,
         })),
       },
+      latestTypingRuns: latestTypingRuns.map((row) => ({
+        id: row.id,
+        wpm: Math.round(row.wpm),
+        language: row.language,
+        mode: row.difficulty === "hard" ? "advanced" : "normal",
+        createdAt: row.createdAt.toISOString(),
+        user: {
+          id: row.user?.id ?? null,
+          username: row.user?.username ?? "guest",
+          displayName: row.user?.displayName ?? null,
+          avatarUrl: row.user?.avatarUrl ?? null,
+          tags: buildUserLanguageTags(
+            row.user?.id,
+            row.language,
+            languageLeadersMap,
+            row.user?.role,
+          ),
+        },
+      })),
     };
   });
 

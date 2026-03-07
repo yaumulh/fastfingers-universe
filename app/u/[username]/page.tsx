@@ -112,15 +112,16 @@ export default function PublicProfilePage() {
             <>
               <section className="grid-3 profile-kpis">
                 <article className="card glass">
-                  <p className="kpi profile-name-with-rank">
+                  <div className="public-profile-identity">
                     <UserAvatar
                       username={data.user.username}
                       displayName={data.user.displayName}
                       avatarUrl={data.user.avatarUrl}
-                      size="sm"
+                      size="md"
+                      className="public-profile-avatar-lg"
                     />
-                    <span>{data.user.displayName ?? data.user.username}</span>
-                  </p>
+                    <p className="kpi public-profile-name">{data.user.displayName ?? data.user.username}</p>
+                  </div>
                   <p className="kpi-label">@{data.user.username}</p>
                 </article>
                 <article className="card glass">

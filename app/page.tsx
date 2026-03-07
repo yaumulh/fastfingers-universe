@@ -16,6 +16,8 @@ import {
   UsersIcon,
 } from "./components/icons";
 import { LanguageFlagIcon } from "./components/language-flag-icon";
+import { UserAvatar } from "./components/user-avatar";
+import { UserRankBadge } from "./components/user-rank-badge";
 import type { LanguageCode } from "./typing/word-banks";
 
 type HomeSnapshot = {
@@ -42,6 +44,30 @@ type HomeSnapshot = {
       count: number;
     }>;
   };
+  latestTypingRuns: Array<{
+    id: string;
+    wpm: number;
+    language: string;
+    mode: "normal" | "advanced";
+    createdAt: string;
+    user: {
+      id: string | null;
+      username: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+      tags: Array<{
+        code:
+          | "role_mod"
+          | "lang_daily_1"
+          | "lang_weekly_1"
+          | "lang_alltime_1"
+          | "adv_daily_1"
+          | "adv_weekly_1"
+          | "adv_alltime_1";
+        label: string;
+      }>;
+    };
+  }>;
 };
 
 type SessionUser = {
@@ -359,6 +385,21 @@ export default function HomePage() {
     .filter((code) => code !== selectedLanguage)
     .slice(0, 3);
   const globalLanguageRows = snapshot?.globalLanguageTop?.[globalTopTab] ?? [];
+  const globalLanguageRowsPadded = (() => {
+    const rows = globalLanguageRows.slice(0, 5);
+    while (rows.length < 5) {
+      rows.push({ rank: rows.length + 1, language: "", count: 0 });
+    }
+    return rows;
+  })();
+  const latestTypingRuns = snapshot?.latestTypingRuns ?? [];
+  const latestTypingRunsPadded: Array<HomeSnapshot["latestTypingRuns"][number] | null> = (() => {
+    const rows = latestTypingRuns.slice(0, 5);
+    while (rows.length < 5) {
+      rows.push(null);
+    }
+    return rows;
+  })();
   const homeHeroLogo = brandingLogos.homeHero ?? null;
 
   function applyLanguagePreference(code: string) {
@@ -448,62 +489,135 @@ export default function HomePage() {
                 })}
               </div>
             </article>
-            <article className="card glass home-global-language-tabs" aria-label="Top global language ranking">
-              <h3 className="feature-title">
-                <GlobeIcon className="ui-icon ui-icon-accent" />
-                Top Global Language
-              </h3>
-              <div className="home-global-tab-row" role="tablist" aria-label="Global language ranking periods">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={globalTopTab === "today"}
-                  className={`duration-link-btn ${globalTopTab === "today" ? "active" : ""}`}
-                  onClick={() => setGlobalTopTab("today")}
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={globalTopTab === "weekly"}
-                  className={`duration-link-btn ${globalTopTab === "weekly" ? "active" : ""}`}
-                  onClick={() => setGlobalTopTab("weekly")}
-                >
-                  Weekly
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={globalTopTab === "allTime"}
-                  className={`duration-link-btn ${globalTopTab === "allTime" ? "active" : ""}`}
-                  onClick={() => setGlobalTopTab("allTime")}
-                >
-                  All-time
-                </button>
-              </div>
-              {snapshotLoading ? <p className="kpi-label">Loading top language...</p> : null}
-              {!snapshotLoading && globalLanguageRows.length === 0 ? (
-                <p className="kpi-label">No language data yet.</p>
-              ) : (
-                <div className="home-global-language-list">
-                  {globalLanguageRows.slice(0, 5).map((item) => {
-                    const languageCode: FlagLanguage = isSupportedLanguage(item.language) ? item.language : "en";
-                    const label = languages.find((lang) => lang.code === item.language)?.label ?? item.language.toUpperCase();
+            <div className="home-insight-grid">
+              <article className="card glass home-global-language-tabs" aria-label="Top global language ranking">
+                <h3 className="feature-title">
+                  <GlobeIcon className="ui-icon ui-icon-accent" />
+                  Top Global Language
+                </h3>
+                <div className="home-global-tab-row" role="tablist" aria-label="Global language ranking periods">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={globalTopTab === "today"}
+                    className={`duration-link-btn ${globalTopTab === "today" ? "active" : ""}`}
+                    onClick={() => setGlobalTopTab("today")}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={globalTopTab === "weekly"}
+                    className={`duration-link-btn ${globalTopTab === "weekly" ? "active" : ""}`}
+                    onClick={() => setGlobalTopTab("weekly")}
+                  >
+                    Weekly
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={globalTopTab === "allTime"}
+                    className={`duration-link-btn ${globalTopTab === "allTime" ? "active" : ""}`}
+                    onClick={() => setGlobalTopTab("allTime")}
+                  >
+                    All-time
+                  </button>
+                </div>
+                {snapshotLoading ? <p className="kpi-label">Loading top language...</p> : null}
+                {!snapshotLoading && globalLanguageRows.length === 0 ? (
+                  <p className="kpi-label">No language data yet.</p>
+                ) : (
+                  <div className="home-global-language-list">
+                    {globalLanguageRowsPadded.map((item) => {
+                      const hasData = Boolean(item.language);
+                      const languageCode: FlagLanguage = isSupportedLanguage(item.language) ? item.language : "en";
+                      const label = hasData
+                        ? (languages.find((lang) => lang.code === item.language)?.label ?? item.language.toUpperCase())
+                        : "—";
+                      return (
+                        <article key={`${globalTopTab}-${item.rank}-${item.language || "empty"}`} className={`home-global-language-item ${hasData ? "" : "is-empty"}`}>
+                          <span className="typing-mini-rank">{`#${item.rank}`}</span>
+                          <span className="home-global-language-name">
+                            {hasData ? <span className="language-flag-icon"><LanguageFlagIcon language={languageCode} /></span> : null}
+                            {label}
+                          </span>
+                          <span className="typing-mini-metric">{hasData ? `${item.count} tests` : "0 tests"}</span>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
+
+              <article className="card glass home-latest-runs" aria-label="Latest typing runs">
+                <h3 className="feature-title">
+                  <TimerIcon className="ui-icon ui-icon-accent" />
+                  Latest Runs
+                </h3>
+                {snapshotLoading ? <p className="kpi-label">Loading latest runs...</p> : null}
+                {!snapshotLoading && latestTypingRuns.length === 0 ? <p className="kpi-label">No runs yet.</p> : null}
+                <div className="home-latest-runs-list">
+                  {latestTypingRunsPadded.map((run, index) => {
+                    const hasData = Boolean(run && run.id);
                     return (
-                      <article key={`${globalTopTab}-${item.rank}-${item.language}`} className="home-global-language-item">
-                        <span className="typing-mini-rank">{`#${item.rank}`}</span>
-                        <span className="home-global-language-name">
-                          <span className="language-flag-icon"><LanguageFlagIcon language={languageCode} /></span>
-                          {label}
-                        </span>
-                        <span className="typing-mini-metric">{item.count} tests</span>
+                      <article key={hasData ? run.id : `empty-${index}`} className={`home-latest-run-item ${hasData ? "" : "is-empty"}`}>
+                        {hasData ? (
+                          <>
+                            <span className="home-latest-run-user">
+                              <UserAvatar
+                                username={run.user.username}
+                                displayName={run.user.displayName}
+                                avatarUrl={run.user.avatarUrl}
+                                size="xs"
+                              />
+                              <Link href={`/u/${encodeURIComponent(run.user.username)}`} className="typing-mini-name-btn">
+                                {run.user.displayName ?? run.user.username}
+                              </Link>
+                              <UserRankBadge tags={run.user.tags ?? []} />
+                              <span className="home-latest-run-meta">
+                                <span className="typing-mini-time">
+                                  {new Date(run.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <span className="home-latest-run-sep">·</span>
+                                <span className="home-latest-run-language">
+                                  <span className="language-flag-icon">
+                                    <LanguageFlagIcon language={isSupportedLanguage(run.language) ? run.language : "en"} />
+                                  </span>
+                                  {languages.find((item) => item.code === run.language)?.label ?? run.language.toUpperCase()}
+                                </span>
+                              </span>
+                            </span>
+                            <span className="home-latest-run-wpm">{run.wpm} WPM</span>
+                            <span
+                              className="home-latest-run-mode-icon"
+                              title={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
+                              aria-label={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
+                            >
+                              {run.mode === "advanced" ? (
+                                <RocketIcon className="ui-icon" />
+                              ) : (
+                                <KeyboardIcon className="ui-icon" />
+                              )}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="home-latest-run-user">
+                              <span className="home-latest-run-placeholder">—</span>
+                            </span>
+                            <span className="home-latest-run-wpm">0 WPM</span>
+                            <span className="home-latest-run-mode-icon">
+                              <KeyboardIcon className="ui-icon" />
+                            </span>
+                          </>
+                        )}
                       </article>
                     );
                   })}
                 </div>
-              )}
-            </article>
+              </article>
+            </div>
           </section>
 
           <section className="section" aria-label="Feature preview">

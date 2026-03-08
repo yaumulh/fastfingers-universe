@@ -591,12 +591,18 @@ export default function HomePage() {
                               {new Date(run.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                             <span className="home-latest-run-sep">·</span>
-                            <span className="home-latest-run-language">
+                            <Link
+                              href={{
+                                pathname: run.mode === "advanced" ? "/typing-advanced" : "/typing",
+                                query: { language: run.language },
+                              }}
+                              className="home-latest-run-language home-latest-run-language-link"
+                            >
                               <span className="language-flag-icon">
                                 <LanguageFlagIcon language={isSupportedLanguage(run.language) ? run.language : "en"} />
                               </span>
                               {languages.find((item) => item.code === run.language)?.label ?? run.language.toUpperCase()}
-                            </span>
+                            </Link>
                           </span>
                         </span>
                         <span className="home-latest-run-wpm">{run.wpm} WPM</span>

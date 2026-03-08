@@ -2117,6 +2117,17 @@ a {
   text-overflow: ellipsis;
 }
 
+.home-latest-run-language-link {
+  text-decoration: none;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.home-latest-run-language-link:hover,
+.home-latest-run-language-link:focus-visible {
+  color: #c6ebff;
+  opacity: 1;
+}
+
 .home-latest-run-sep {
   color: rgba(157, 191, 255, 0.44);
   font-size: 0.72rem;

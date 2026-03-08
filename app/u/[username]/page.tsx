@@ -103,7 +103,8 @@ export default function PublicProfilePage() {
   }, [username]);
 
   useEffect(() => {
-    if (!data?.user.username) {
+    const targetUsername = data?.user.username;
+    if (!targetUsername) {
       return;
     }
 
@@ -123,7 +124,7 @@ export default function PublicProfilePage() {
           if (!cancelled) setFriendState("guest");
           return;
         }
-        if (viewerUsername === data.user.username) {
+        if (viewerUsername === targetUsername) {
           if (!cancelled) setFriendState("self");
           return;
         }
@@ -140,7 +141,7 @@ export default function PublicProfilePage() {
             pendingOutgoing?: Array<{ user: { username: string } }>;
           };
         };
-        const target = data.user.username;
+        const target = targetUsername;
         const friends = friendsJson.data?.friends ?? [];
         const pendingIncoming = friendsJson.data?.pendingIncoming ?? [];
         const pendingOutgoing = friendsJson.data?.pendingOutgoing ?? [];

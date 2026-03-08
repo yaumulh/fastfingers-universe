@@ -559,59 +559,58 @@ export default function HomePage() {
                 {!snapshotLoading && latestTypingRuns.length === 0 ? <p className="kpi-label">No runs yet.</p> : null}
                 <div className="home-latest-runs-list">
                   {latestTypingRunsPadded.map((run, index) => {
-                    const hasData = Boolean(run && run.id);
+                    if (!run) {
+                      return (
+                        <article key={`empty-${index}`} className="home-latest-run-item is-empty">
+                          <span className="home-latest-run-user">
+                            <span className="home-latest-run-placeholder">—</span>
+                          </span>
+                          <span className="home-latest-run-wpm">0 WPM</span>
+                          <span className="home-latest-run-mode-icon">
+                            <KeyboardIcon className="ui-icon" />
+                          </span>
+                        </article>
+                      );
+                    }
+
                     return (
-                      <article key={hasData ? run.id : `empty-${index}`} className={`home-latest-run-item ${hasData ? "" : "is-empty"}`}>
-                        {hasData ? (
-                          <>
-                            <span className="home-latest-run-user">
-                              <UserAvatar
-                                username={run.user.username}
-                                displayName={run.user.displayName}
-                                avatarUrl={run.user.avatarUrl}
-                                size="xs"
-                              />
-                              <Link href={`/u/${encodeURIComponent(run.user.username)}`} className="typing-mini-name-btn">
-                                {run.user.displayName ?? run.user.username}
-                              </Link>
-                              <UserRankBadge tags={run.user.tags ?? []} />
-                              <span className="home-latest-run-meta">
-                                <span className="typing-mini-time">
-                                  {new Date(run.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                <span className="home-latest-run-sep">·</span>
-                                <span className="home-latest-run-language">
-                                  <span className="language-flag-icon">
-                                    <LanguageFlagIcon language={isSupportedLanguage(run.language) ? run.language : "en"} />
-                                  </span>
-                                  {languages.find((item) => item.code === run.language)?.label ?? run.language.toUpperCase()}
-                                </span>
+                      <article key={run.id} className="home-latest-run-item">
+                        <span className="home-latest-run-user">
+                          <UserAvatar
+                            username={run.user.username}
+                            displayName={run.user.displayName}
+                            avatarUrl={run.user.avatarUrl}
+                            size="xs"
+                          />
+                          <Link href={`/u/${encodeURIComponent(run.user.username)}`} className="typing-mini-name-btn">
+                            {run.user.displayName ?? run.user.username}
+                          </Link>
+                          <UserRankBadge tags={run.user.tags ?? []} />
+                          <span className="home-latest-run-meta">
+                            <span className="typing-mini-time">
+                              {new Date(run.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            <span className="home-latest-run-sep">·</span>
+                            <span className="home-latest-run-language">
+                              <span className="language-flag-icon">
+                                <LanguageFlagIcon language={isSupportedLanguage(run.language) ? run.language : "en"} />
                               </span>
+                              {languages.find((item) => item.code === run.language)?.label ?? run.language.toUpperCase()}
                             </span>
-                            <span className="home-latest-run-wpm">{run.wpm} WPM</span>
-                            <span
-                              className="home-latest-run-mode-icon"
-                              title={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
-                              aria-label={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
-                            >
-                              {run.mode === "advanced" ? (
-                                <RocketIcon className="ui-icon" />
-                              ) : (
-                                <KeyboardIcon className="ui-icon" />
-                              )}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="home-latest-run-user">
-                              <span className="home-latest-run-placeholder">—</span>
-                            </span>
-                            <span className="home-latest-run-wpm">0 WPM</span>
-                            <span className="home-latest-run-mode-icon">
-                              <KeyboardIcon className="ui-icon" />
-                            </span>
-                          </>
-                        )}
+                          </span>
+                        </span>
+                        <span className="home-latest-run-wpm">{run.wpm} WPM</span>
+                        <span
+                          className="home-latest-run-mode-icon"
+                          title={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
+                          aria-label={run.mode === "advanced" ? "Advanced mode" : "Normal mode"}
+                        >
+                          {run.mode === "advanced" ? (
+                            <RocketIcon className="ui-icon" />
+                          ) : (
+                            <KeyboardIcon className="ui-icon" />
+                          )}
+                        </span>
                       </article>
                     );
                   })}

@@ -11,22 +11,22 @@ export async function GET() {
   const [incoming, outgoing, acceptedIncoming, acceptedOutgoing] = await Promise.all([
     prisma.friendRequest.findMany({
       where: { toUserId: session.id, status: "pending" },
-      include: { fromUser: { select: { id: true, username: true, displayName: true } } },
+      include: { fromUser: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.friendRequest.findMany({
       where: { fromUserId: session.id, status: "pending" },
-      include: { toUser: { select: { id: true, username: true, displayName: true } } },
+      include: { toUser: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.friendRequest.findMany({
       where: { toUserId: session.id, status: "accepted" },
-      include: { fromUser: { select: { id: true, username: true, displayName: true } } },
+      include: { fromUser: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       orderBy: { respondedAt: "desc" },
     }),
     prisma.friendRequest.findMany({
       where: { fromUserId: session.id, status: "accepted" },
-      include: { toUser: { select: { id: true, username: true, displayName: true } } },
+      include: { toUser: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       orderBy: { respondedAt: "desc" },
     }),
   ]);

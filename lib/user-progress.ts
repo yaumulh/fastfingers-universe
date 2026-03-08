@@ -29,6 +29,15 @@ const ACHIEVEMENTS = {
   STREAK_3: "streak_3",
 } as const;
 
+const ACHIEVEMENT_LABELS: Record<string, string> = {
+  [ACHIEVEMENTS.WPM_100]: "Hit 100 WPM",
+  [ACHIEVEMENTS.ACCURACY_98]: "98% Accuracy",
+  [ACHIEVEMENTS.ZERO_MISTAKE]: "Zero Mistake Run",
+  [ACHIEVEMENTS.MULTI_WIN]: "First Multiplayer Win",
+  [ACHIEVEMENTS.MULTI_120]: "120 WPM in Multiplayer",
+  [ACHIEVEMENTS.STREAK_3]: "3-Day Streak",
+};
+
 function dayKeyFor(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -62,12 +71,31 @@ async function ensureMissionRows(userId: string, dayKey: string) {
   );
 }
 
-async function addAchievement(userId: string, code: string) {
-  await prisma.userAchievement.upsert({
+async function addAchievement(userId: string, code: string): Promise<boolean> {
+  const existing = await prisma.userAchievement.findUnique({
     where: { userId_code: { userId, code } },
-    update: {},
-    create: { userId, code },
+    select: { id: true },
   });
+  if (existing) {
+    return false;
+  }
+
+  await prisma.userAchievement.create({
+    data: { userId, code },
+  });
+
+  const label = ACHIEVEMENT_LABELS[code] ?? code;
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: "achievement_unlocked",
+      title: "Achievement Unlocked",
+      body: `You unlocked: ${label}.`,
+      data: { code, label },
+    },
+  });
+
+  return true;
 }
 
 export async function updateAfterTypingResult(payload: TypingPayload) {

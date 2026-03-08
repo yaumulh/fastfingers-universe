@@ -226,12 +226,16 @@ export function FriendProfileModal({
                   <div className="profile-trend-list">
                     {data.recentCompetitions.slice(0, 5).map((item) => (
                       <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
-                        <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
-                          {item.title} | {item.bestWpm} WPM | {item.bestAccuracy}% ACC
-                          {item.isWinner ? " | Winner" : ""} |{" "}
-                          {item.bestResultAt
-                            ? new Date(item.bestResultAt).toLocaleString()
-                            : new Date(item.endedAt).toLocaleString()}
+                        <Link href={`/competition/${item.competitionId}`} className="profile-trend-link profile-competition-link">
+                          <span className="profile-competition-main">
+                            <span className="profile-competition-title">{item.title}</span>
+                            <span className="kpi-label profile-competition-meta">
+                              {item.bestResultAt
+                                ? new Date(item.bestResultAt).toLocaleString()
+                                : new Date(item.endedAt).toLocaleString()}
+                            </span>
+                          </span>
+                          {item.isWinner ? <span className="profile-competition-chip">Winner</span> : null}
                         </Link>
                       </article>
                     ))}

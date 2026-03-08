@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 import GlobalHeader from "./components/global-header";
 import SideRailNav from "./components/side-rail-nav";
+import FriendsDock from "./components/friends-dock";
 import { getBrandingData } from "@/lib/branding";
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export default function RootLayout({
           <GlobalHeader />
         </div>
         {children}
+        <FriendsDock />
       </body>
     </html>
   );

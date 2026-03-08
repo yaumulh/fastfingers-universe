@@ -4283,33 +4283,94 @@ a {
 .profile-hero-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.55rem;
+  gap: 0.7rem;
 }
 
-.profile-hero-metrics {
-  margin-top: 0.25rem;
+.profile-hero-main {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.42fr) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.profile-hero-identity {
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.profile-avatar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.profile-avatar-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.profile-hero-icon-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(157, 191, 255, 0.26);
+  background: rgba(8, 16, 34, 0.56);
+  color: #bcd3fb;
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.profile-hero-icon-btn:hover {
+  border-color: rgba(143, 239, 255, 0.55);
+  color: #d8f4ff;
+  background: rgba(11, 24, 50, 0.78);
+  transform: translateY(-1px);
+}
+
+.profile-hero-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.profile-hero-stats-grid {
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.18rem 0.8rem;
+  align-content: start;
 }
 
 .profile-hero-metric {
-  border: 1px solid rgba(157, 191, 255, 0.2);
-  border-radius: 12px;
-  background: rgba(8, 16, 34, 0.5);
-  padding: 0.6rem 0.68rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.42rem 0.1rem 0.5rem;
+  border-bottom: 1px solid rgba(157, 191, 255, 0.18);
 }
 
 .profile-hero-metric .kpi {
-  font-size: 1.55rem;
+  font-size: 1.52rem;
+  line-height: 1.02;
 }
 
 .profile-hero-metric .kpi-label {
-  margin-top: 0.28rem;
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 920px) {
+  .profile-hero-main {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
-  .profile-hero-metrics {
+  .profile-hero-stats-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -4379,6 +4440,52 @@ a {
   text-underline-offset: 2px;
 }
 
+.profile-competition-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.2rem 0;
+}
+
+.profile-competition-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.08rem;
+}
+
+.profile-competition-title {
+  display: block;
+  min-width: 0;
+  color: #dceaff;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-competition-meta {
+  margin: 0;
+  color: #9fb4d7;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.profile-competition-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 206, 102, 0.46);
+  background: rgba(255, 206, 102, 0.14);
+  color: #ffe2a4;
+  padding: 0.11rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .public-profile-identity {
   display: inline-flex;
   align-items: center;
@@ -4392,6 +4499,12 @@ a {
 
 .public-profile-name {
   margin: 0;
+}
+
+.public-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem 0.62rem;
 }
 
 .runs-chart-shell {
@@ -4848,6 +4961,421 @@ a {
   transform: translateY(-1px);
   border-color: rgba(143, 247, 255, 0.62);
   color: #e9f8ff;
+}
+
+.public-profile-add-friend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 224, 255, 0.42);
+  background: linear-gradient(180deg, rgba(20, 48, 88, 0.56), rgba(9, 23, 49, 0.64));
+  color: #dff6ff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.28rem 0.56rem;
+}
+
+.public-profile-add-friend-btn .public-profile-add-friend-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.public-profile-add-friend-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(137, 237, 255, 0.62);
+  box-shadow: 0 8px 18px rgba(0, 236, 255, 0.18);
+}
+
+.public-profile-add-friend-btn.state-locked {
+  opacity: 0.86;
+}
+
+.public-profile-friend-notice {
+  margin-top: 0.22rem;
+  color: #8ef5ff;
+}
+
+.friends-dock {
+  position: fixed;
+  right: 0.9rem;
+  bottom: 0.55rem;
+  z-index: 115;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.34rem;
+  pointer-events: none;
+}
+
+.friends-dock-stack {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.34rem;
+}
+
+.friends-dock-bar {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid rgba(126, 165, 226, 0.26);
+  padding: 0.24rem 0.38rem;
+  background: rgba(12, 24, 48, 0.95);
+  min-width: 178px;
+}
+
+.friends-dock-trigger {
+  border: 0;
+  background: transparent;
+  color: #d8ecff;
+  position: relative;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.74rem;
+  font-weight: 650;
+  padding: 0.18rem 0.04rem;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.friends-dock-trigger:hover {
+  color: #ecfaff;
+  transform: translateY(-1px);
+}
+
+.friends-dock-count {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff7676, #ff4e6a);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+}
+
+.friends-dock-panel {
+  width: min(320px, calc(100vw - 1.4rem));
+  max-height: min(68vh, 560px);
+  padding: 0.66rem;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid rgba(130, 176, 244, 0.26);
+  overflow: auto;
+  display: grid;
+  gap: 0.56rem;
+  pointer-events: auto;
+  animation: friendsDockIn 220ms ease;
+  background: rgba(9, 20, 40, 0.96);
+}
+
+@keyframes friendsDockIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.friends-dock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.friends-dock-head h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.9rem;
+}
+
+.friends-dock-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.friends-dock-close {
+  border: 1px solid rgba(116, 160, 232, 0.3);
+  background: rgba(13, 25, 47, 0.72);
+  color: #d7e9ff;
+  border-radius: 999px;
+  padding: 0.24rem 0.58rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.friends-dock-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.44rem;
+}
+
+.friends-dock-toast {
+  margin: 0;
+  color: #90f7ff;
+  font-size: 0.82rem;
+}
+
+.friends-dock-section {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.friends-dock-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.friends-dock-item,
+.friends-dock-request-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.42rem;
+  align-items: center;
+  border: 1px solid rgba(113, 158, 225, 0.2);
+  border-radius: 9px;
+  background: rgba(12, 25, 49, 0.52);
+  padding: 0.32rem 0.4rem;
+}
+
+.friends-dock-item-linklike {
+  border: 0;
+  border-bottom: 1px solid rgba(111, 152, 214, 0.2);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0.1rem;
+}
+
+.friends-dock-item-linklike:last-child {
+  border-bottom: 0;
+}
+
+.friends-dock-user {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #deedff;
+  text-decoration: none;
+}
+
+.friends-dock-user span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends-dock-chat-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.friends-dock-chat-link:hover span {
+  color: #ecf8ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(180, 226, 255, 0.55);
+  text-underline-offset: 2px;
+}
+
+.friends-dock-chat-link.active span {
+  color: #8feeff;
+}
+
+.friends-dock-profile-link {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid rgba(115, 166, 243, 0.26);
+  background: rgba(11, 23, 44, 0.55);
+  color: #b9defe;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friends-dock-profile-link:hover {
+  border-color: rgba(133, 225, 255, 0.52);
+  color: #e9fdff;
+}
+
+.friends-dock-chat-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(115, 166, 243, 0.28);
+  background: rgba(11, 23, 44, 0.7);
+  color: #b8dcff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friends-dock-chat-btn:hover,
+.friends-dock-chat-btn.active {
+  border-color: rgba(130, 229, 255, 0.62);
+  color: #eaffff;
+}
+
+.friends-dock-request-actions {
+  display: inline-flex;
+  gap: 0.28rem;
+}
+
+.friends-dock-request-actions .btn {
+  padding: 0.3rem 0.48rem;
+  font-size: 0.72rem;
+}
+
+.friends-chat-box {
+  pointer-events: auto;
+  width: min(320px, calc(100vw - 1.4rem));
+  max-height: min(58vh, 480px);
+  border-radius: 10px 10px 0 0;
+  border: 1px solid rgba(124, 170, 240, 0.3);
+  background: rgba(8, 19, 39, 0.97);
+  display: grid;
+  grid-template-rows: auto minmax(120px, 1fr) auto auto;
+  overflow: hidden;
+  animation: friendsDockIn 180ms ease;
+}
+
+.friends-chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.46rem;
+  padding: 0.44rem 0.5rem;
+  border-bottom: 1px solid rgba(124, 167, 235, 0.24);
+  background: rgba(14, 30, 58, 0.9);
+}
+
+.friends-chat-peer {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  color: #e4f2ff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.friends-chat-peer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends-chat-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.friends-chat-close {
+  border: 1px solid rgba(117, 166, 238, 0.3);
+  border-radius: 7px;
+  background: rgba(10, 22, 43, 0.72);
+  color: #d9ecff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+.friends-chat-close {
+  font-size: 0.92rem;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.friends-chat-messages {
+  overflow-y: auto;
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+
+.friends-chat-message {
+  max-width: 86%;
+  border-radius: 9px;
+  border: 1px solid rgba(120, 161, 222, 0.2);
+  padding: 0.28rem 0.42rem;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.friends-chat-message p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #dfeeff;
+  word-break: break-word;
+}
+
+.friends-chat-message time {
+  font-size: 0.62rem;
+  color: #8ba7cf;
+}
+
+.friends-chat-message.mine {
+  justify-self: end;
+  background: rgba(26, 73, 124, 0.42);
+  border-color: rgba(102, 177, 232, 0.4);
+}
+
+.friends-chat-message.theirs {
+  justify-self: start;
+  background: rgba(12, 24, 46, 0.58);
+}
+
+.friends-chat-input-row {
+  padding: 0.34rem;
+  border-top: 1px solid rgba(116, 158, 224, 0.18);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.36rem;
+}
+
+.friends-chat-input-row .chat-input {
+  min-height: 32px;
+  font-size: 0.76rem;
+  padding: 0.4rem 0.56rem;
+}
+
+.friends-chat-input-row .btn {
+  min-width: 56px;
+  padding: 0.4rem 0.56rem;
+  font-size: 0.72rem;
 }
 
 .profile-friend-modal-backdrop {
@@ -6762,6 +7290,26 @@ a {
 
   .notification-item {
     flex-direction: column;
+  }
+
+  .friends-dock {
+    right: 0.72rem;
+    bottom: 5.9rem;
+  }
+
+  .friends-dock-panel {
+    width: min(320px, calc(100vw - 1.4rem));
+    max-height: 52vh;
+  }
+
+  .friends-chat-box {
+    width: min(320px, calc(100vw - 1.2rem));
+    max-height: 48vh;
+  }
+
+  .friends-dock-stack {
+    flex-direction: column;
+    align-items: flex-end;
   }
 }
 

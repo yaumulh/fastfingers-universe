@@ -2,25 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
-import { FriendProfileModal } from "../components/friend-profile-modal";
+import { EyeIcon, GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
 import { RecentRunsChart } from "../components/recent-runs-chart";
 import { UserAvatar } from "../components/user-avatar";
-import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
-
-type UserTag = {
-  code:
-    | "role_mod"
-    | "lang_daily_1"
-    | "lang_weekly_1"
-    | "lang_alltime_1"
-    | "adv_daily_1"
-    | "adv_weekly_1"
-    | "adv_alltime_1";
-  label: string;
-};
+import { LANGUAGE_LABELS } from "../typing/word-banks";
 
 type ProfileResponse = {
   data: {
@@ -84,7 +70,6 @@ type ProfileResponse = {
 };
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [data, setData] = useState<ProfileResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,93 +89,12 @@ export default function ProfilePage() {
   const [challengeCode, setChallengeCode] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const [siteOrigin, setSiteOrigin] = useState("");
-  const [friendProfileOpen, setFriendProfileOpen] = useState(false);
-  const [friendProfileLoading, setFriendProfileLoading] = useState(false);
-  const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
-  const [friendProfileTags, setFriendProfileTags] = useState<UserTag[]>([]);
-  const [messageActionBusy, setMessageActionBusy] = useState(false);
-  const [tagLanguage, setTagLanguage] = useState<LanguageCode>("en");
   const [shareCopied, setShareCopied] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [friendProfileData, setFriendProfileData] = useState<{
-    user: {
-      id: string;
-      username: string;
-      displayName?: string | null;
-      avatarUrl?: string | null;
-      rating: number;
-      trustScore: number;
-      streakDays: number;
-      totalXp?: number;
-      level?: {
-        level: number;
-        totalXp: number;
-        currentLevelXp: number;
-        nextLevelXp: number;
-        progressPct: number;
-      };
-    };
-    level?: {
-      level: number;
-      totalXp: number;
-      currentLevelXp: number;
-      nextLevelXp: number;
-      progressPct: number;
-    };
-    summary: {
-      totalTests: number;
-      avgWpm: number;
-      avgAccuracy: number;
-      bestWpm: number;
-      competitionJoined: number;
-      competitionWins: number;
-    };
-    trend: Array<{
-      date: string;
-      wpm: number;
-      accuracy: number;
-      mode: "normal" | "advanced";
-    }>;
-    recentCompetitions: Array<{
-      competitionId: string;
-      title: string;
-      language: string;
-      endedAt: string;
-      status: string;
-      bestWpm: number;
-      bestAccuracy: number;
-      bestResultAt: string | null;
-      isWinner: boolean;
-    }>;
-  } | null>(null);
 
   useEffect(() => {
     setSiteOrigin(window.location.origin);
-    const preferred = window.localStorage.getItem("fastfingers:preferred-language");
-    if (preferred && Object.prototype.hasOwnProperty.call(LANGUAGE_LABELS, preferred)) {
-      setTagLanguage(preferred as LanguageCode);
-    }
   }, []);
-
-  useEffect(() => {
-    if (!friendProfileOpen) {
-      return;
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setFriendProfileOpen(false);
-        setFriendProfileData(null);
-        setFriendProfileError(null);
-        setFriendProfileTags([]);
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [friendProfileOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +189,13 @@ export default function ProfilePage() {
     return `${base}/u/${encodeURIComponent(data.user.username)}`;
   }, [data?.user.username, siteOrigin]);
 
+  const competitionWinRate = useMemo(() => {
+    if (!data) return 0;
+    return data.summary.competitionJoined > 0
+      ? Math.round((data.summary.competitionWins / data.summary.competitionJoined) * 100)
+      : 0;
+  }, [data]);
+
   async function refreshFriends() {
     const response = await fetch("/api/friends", { cache: "no-store" });
     if (!response.ok) {
@@ -366,77 +277,6 @@ export default function ProfilePage() {
       window.setTimeout(() => setShareCopied(false), 1600);
     } catch {
       setShareCopied(false);
-    }
-  }
-
-  async function openFriendProfile(userId: string) {
-    try {
-      setFriendProfileOpen(true);
-      setFriendProfileLoading(true);
-      setFriendProfileError(null);
-      setFriendProfileData(null);
-      setFriendProfileTags([]);
-
-      const response = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
-      const json = (await response.json()) as {
-        data?: NonNullable<typeof friendProfileData>;
-        error?: string;
-      };
-
-      if (!response.ok || !json.data) {
-        setFriendProfileError(json.error ?? "Failed to load friend profile.");
-        return;
-      }
-
-      setFriendProfileData(json.data);
-      try {
-        const query = new URLSearchParams({
-          language: tagLanguage,
-          names: json.data.user.username,
-        });
-        const tagResponse = await fetch(`/api/user-language-tags?${query.toString()}`, { cache: "no-store" });
-        if (tagResponse.ok) {
-          const tagJson = (await tagResponse.json()) as { data: Record<string, UserTag[]> };
-          setFriendProfileTags(tagJson.data?.[json.data.user.username] ?? []);
-        }
-      } catch {
-        setFriendProfileTags([]);
-      }
-    } catch {
-      setFriendProfileError("Failed to load friend profile.");
-    } finally {
-      setFriendProfileLoading(false);
-    }
-  }
-
-  async function handleMessageFromProfile(): Promise<void> {
-    if (!friendProfileData?.user.id) return;
-
-    try {
-      setMessageActionBusy(true);
-      const response = await fetch("/api/messages/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: friendProfileData.user.id }),
-      });
-      const json = (await response.json()) as { data?: { id: string }; error?: string };
-      if (!response.ok || !json.data?.id) {
-        if (response.status === 401) {
-          window.dispatchEvent(new CustomEvent("ff:require-login"));
-          throw new Error("Login first to send message.");
-        }
-        throw new Error(json.error ?? "Failed to open chat.");
-      }
-
-      setFriendProfileOpen(false);
-      setFriendProfileData(null);
-      setFriendProfileError(null);
-      setFriendProfileTags([]);
-      router.push(`/messages?conversation=${encodeURIComponent(json.data.id)}`);
-    } catch (error) {
-      setFriendProfileError(error instanceof Error ? error.message : "Failed to open chat.");
-    } finally {
-      setMessageActionBusy(false);
     }
   }
 
@@ -582,74 +422,147 @@ export default function ProfilePage() {
         <>
           <section className="profile-hero-section profile-summary">
             <article className="card glass profile-hero-card">
-              <div className="profile-avatar-wrap">
-                {data.user.avatarUrl ? (
-                  <Image
-                    src={data.user.avatarUrl}
-                    alt={`${data.user.displayName ?? data.user.username} avatar`}
-                    width={72}
-                    height={72}
-                    className="profile-avatar-image"
-                    unoptimized
-                  />
-                ) : (
-                  <UserAvatar
-                    username={data.user.username}
-                    displayName={data.user.displayName}
-                    avatarUrl={null}
-                    size="md"
-                    className="profile-avatar-fallback"
-                  />
-                )}
+              <div className="profile-hero-main">
+                <div className="profile-hero-identity">
+                  <div className="profile-avatar-head">
+                    <div className="profile-avatar-wrap">
+                      {data.user.avatarUrl ? (
+                        <Image
+                          src={data.user.avatarUrl}
+                          alt={`${data.user.displayName ?? data.user.username} avatar`}
+                          width={72}
+                          height={72}
+                          className="profile-avatar-image"
+                          unoptimized
+                        />
+                      ) : (
+                        <UserAvatar
+                          username={data.user.username}
+                          displayName={data.user.displayName}
+                          avatarUrl={null}
+                          size="md"
+                          className="profile-avatar-fallback"
+                        />
+                      )}
+                    </div>
+                    <div className="profile-avatar-head-actions">
+                      <button
+                        className="profile-hero-icon-btn"
+                        type="button"
+                        onClick={() => void copyPublicProfileLink()}
+                        disabled={!publicProfileUrl}
+                        title={shareCopied ? "Copied" : "Share profile"}
+                        aria-label={shareCopied ? "Copied" : "Share profile"}
+                      >
+                        <SparkIcon className="ui-icon" />
+                      </button>
+                      {publicProfileUrl ? (
+                        <Link
+                          href={`/u/${encodeURIComponent(data.user.username)}`}
+                          className="profile-hero-icon-btn"
+                          title="View public profile"
+                          aria-label="View public profile"
+                        >
+                          <EyeIcon className="ui-icon" />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="profile-name-row">
+                    <p className="kpi">{data.user.displayName ?? data.user.username}</p>
+                    <button
+                      className="profile-edit-name-btn"
+                      type="button"
+                      onClick={() => setDisplayNameEditOpen(true)}
+                      disabled={!canChangeDisplayName || displayNameBusy}
+                      title={canChangeDisplayName ? "Edit display name" : "Display name can be changed every 7 days"}
+                      aria-label="Edit display name"
+                    >
+                      <PencilIcon className="ui-icon" />
+                    </button>
+                  </div>
+                  <p className="kpi-label profile-username-linklike">@{data.user.username}</p>
+
+                  <div className="profile-social-row profile-avatar-actions">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="profile-avatar-input"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void uploadAvatar(file);
+                        }
+                      }}
+                      disabled={avatarBusy}
+                    />
+                    <button
+                      className="btn btn-ghost"
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarBusy}
+                    >
+                      {avatarBusy ? "Uploading..." : "Upload Avatar"}
+                    </button>
+                    {data.user.avatarUrl ? (
+                      <button className="btn btn-ghost" type="button" onClick={() => void removeAvatar()} disabled={avatarBusy}>
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <p className="kpi-label">
+                    Level <strong>{data.user.level.level}</strong> • {data.user.level.currentLevelXp}/{data.user.level.nextLevelXp} XP
+                  </p>
+                  <div className="typing-progress-track">
+                    <div className="typing-progress-bar" style={{ width: `${data.user.level.progressPct}%` }} />
+                  </div>
+                </div>
+
+                <div className="profile-hero-stats-grid">
+                  <article className="profile-hero-metric">
+                    <span className="ui-icon-badge">
+                      <TrophyIcon className="ui-icon" />
+                    </span>
+                    <p className="kpi">{data.user.rating}</p>
+                    <p className="kpi-label">Rating</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <span className="ui-icon-badge">
+                      <SparkIcon className="ui-icon" />
+                    </span>
+                    <p className="kpi">{data.user.trustScore}%</p>
+                    <p className="kpi-label">Trust Score</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{data.summary.bestWpm}</p>
+                    <p className="kpi-label">Best WPM</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{data.summary.avgWpm}</p>
+                    <p className="kpi-label">Average WPM</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{data.summary.avgAccuracy}%</p>
+                    <p className="kpi-label">Average Accuracy</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{data.summary.competitionJoined}</p>
+                    <p className="kpi-label">Competitions Joined</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{data.summary.competitionWins}</p>
+                    <p className="kpi-label">Competition Wins</p>
+                  </article>
+                  <article className="profile-hero-metric">
+                    <p className="kpi">{competitionWinRate}%</p>
+                    <p className="kpi-label">Competition Win Rate</p>
+                  </article>
+                </div>
               </div>
-              <div className="profile-name-row">
-                <p className="kpi">{data.user.displayName ?? data.user.username}</p>
-                <button
-                  className="profile-edit-name-btn"
-                  type="button"
-                  onClick={() => setDisplayNameEditOpen(true)}
-                  disabled={!canChangeDisplayName || displayNameBusy}
-                  title={canChangeDisplayName ? "Edit display name" : "Display name can be changed every 7 days"}
-                  aria-label="Edit display name"
-                >
-                  <PencilIcon className="ui-icon" />
-                </button>
-              </div>
-              <p className="kpi-label profile-username-linklike">@{data.user.username}</p>
-              <div className="profile-social-row profile-avatar-actions">
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="profile-avatar-input"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void uploadAvatar(file);
-                    }
-                  }}
-                  disabled={avatarBusy}
-                />
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={avatarBusy}
-                >
-                  {avatarBusy ? "Uploading..." : "Upload Avatar"}
-                </button>
-                {data.user.avatarUrl ? (
-                  <button className="btn btn-ghost" type="button" onClick={() => void removeAvatar()} disabled={avatarBusy}>
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-              <p className="kpi-label">
-                Level <strong>{data.user.level.level}</strong> • {data.user.level.currentLevelXp}/{data.user.level.nextLevelXp} XP
-              </p>
-              <div className="typing-progress-track">
-                <div className="typing-progress-bar" style={{ width: `${data.user.level.progressPct}%` }} />
-              </div>
+
               {displayNameEditOpen ? (
                 <div className="profile-social-row">
                   <input
@@ -686,69 +599,8 @@ export default function ProfilePage() {
                 <InfoIcon className="ui-icon" />
                 <span>{displayNameCooldownText}</span>
               </p>
-              <div className="profile-displayname-actions">
-                <button className="btn btn-ghost" type="button" onClick={() => void copyPublicProfileLink()} disabled={!publicProfileUrl}>
-                  {shareCopied ? "Copied" : "Share Profile"}
-                </button>
-                {publicProfileUrl ? (
-                  <Link href={`/u/${encodeURIComponent(data.user.username)}`} className="btn btn-ghost">
-                    View Public
-                  </Link>
-                ) : null}
-              </div>
-              <div className="profile-hero-metrics">
-                <article className="profile-hero-metric">
-                  <span className="ui-icon-badge">
-                    <TrophyIcon className="ui-icon" />
-                  </span>
-                  <p className="kpi">{data.user.rating}</p>
-                  <p className="kpi-label">Rating</p>
-                </article>
-                <article className="profile-hero-metric">
-                  <span className="ui-icon-badge">
-                    <SparkIcon className="ui-icon" />
-                  </span>
-                  <p className="kpi">{data.user.trustScore}%</p>
-                  <p className="kpi-label">Trust Score</p>
-                </article>
-              </div>
               {displayNameError ? <p className="kpi-label auth-error">{displayNameError}</p> : null}
               {avatarError ? <p className="kpi-label auth-error">{avatarError}</p> : null}
-            </article>
-          </section>
-
-          <section className="grid-3 profile-kpis">
-            <article className="card glass">
-              <p className="kpi">{data.summary.bestWpm}</p>
-              <p className="kpi-label">Best WPM</p>
-            </article>
-            <article className="card glass">
-              <p className="kpi">{data.summary.avgWpm}</p>
-              <p className="kpi-label">Average WPM</p>
-            </article>
-            <article className="card glass">
-              <p className="kpi">{data.summary.avgAccuracy}%</p>
-              <p className="kpi-label">Average Accuracy</p>
-            </article>
-          </section>
-
-          <section className="grid-3 profile-kpis">
-            <article className="card glass">
-              <p className="kpi">{data.summary.competitionJoined}</p>
-              <p className="kpi-label">Competitions Joined</p>
-            </article>
-            <article className="card glass">
-              <p className="kpi">{data.summary.competitionWins}</p>
-              <p className="kpi-label">Competition Wins</p>
-            </article>
-            <article className="card glass">
-              <p className="kpi">
-                {data.summary.competitionJoined > 0
-                  ? Math.round((data.summary.competitionWins / data.summary.competitionJoined) * 100)
-                  : 0}
-                %
-              </p>
-              <p className="kpi-label">Competition Win Rate</p>
             </article>
           </section>
 
@@ -813,12 +665,16 @@ export default function ProfilePage() {
                 <div className="profile-trend-list">
                   {data.recentCompetitions.slice(0, 5).map((item) => (
                     <article key={`${item.competitionId}-${item.bestResultAt ?? item.endedAt}`} className="profile-trend-item">
-                      <Link href={`/competition/${item.competitionId}`} className="profile-trend-link kpi-label profile-trend-line">
-                        {item.title} | {item.bestWpm} WPM | {item.bestAccuracy}% ACC
-                        {item.isWinner ? " | Winner" : ""} |{" "}
-                        {item.bestResultAt
-                          ? new Date(item.bestResultAt).toLocaleString()
-                          : new Date(item.endedAt).toLocaleString()}
+                      <Link href={`/competition/${item.competitionId}`} className="profile-trend-link profile-competition-link">
+                        <span className="profile-competition-main">
+                          <span className="profile-competition-title">{item.title}</span>
+                          <span className="kpi-label profile-competition-meta">
+                            {item.bestResultAt
+                              ? new Date(item.bestResultAt).toLocaleString()
+                              : new Date(item.endedAt).toLocaleString()}
+                          </span>
+                        </span>
+                        {item.isWinner ? <span className="profile-competition-chip">Winner</span> : null}
                       </Link>
                     </article>
                   ))}
@@ -849,14 +705,13 @@ export default function ProfilePage() {
                 <p className="kpi-label">Friends: {friendsData.friends.length}</p>
                 <div className="leaderboard-chips">
                   {friendsData.friends.map((friend) => (
-                    <button
+                    <Link
                       key={friend.id}
-                      type="button"
                       className="leaderboard-chip profile-friend-chip"
-                      onClick={() => void openFriendProfile(friend.id)}
+                      href={`/u/${encodeURIComponent(friend.username)}`}
                     >
                       {friend.displayName ?? friend.username}
-                    </button>
+                    </Link>
                   ))}
                 </div>
                 {friendsData.pendingIncoming.length > 0 ? (
@@ -912,24 +767,6 @@ export default function ProfilePage() {
         </>
       ) : null}
 
-      <FriendProfileModal
-        open={friendProfileOpen}
-        loading={friendProfileLoading}
-        error={friendProfileError}
-        data={friendProfileData}
-        tags={friendProfileTags}
-        languageForTags={tagLanguage}
-        messageBusy={messageActionBusy}
-        onMessage={() => {
-          void handleMessageFromProfile();
-        }}
-        onClose={() => {
-          setFriendProfileOpen(false);
-          setFriendProfileData(null);
-          setFriendProfileError(null);
-          setFriendProfileTags([]);
-        }}
-      />
     </main>
   );
 }

@@ -394,7 +394,7 @@ export default function HomePage() {
   })();
   const latestTypingRuns = snapshot?.latestTypingRuns ?? [];
   const latestTypingRunsPadded: Array<HomeSnapshot["latestTypingRuns"][number] | null> = (() => {
-    const rows = latestTypingRuns.slice(0, 5);
+    const rows: Array<HomeSnapshot["latestTypingRuns"][number] | null> = latestTypingRuns.slice(0, 5);
     while (rows.length < 5) {
       rows.push(null);
     }

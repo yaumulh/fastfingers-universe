@@ -5000,7 +5000,8 @@ a {
 .friends-dock {
   position: fixed;
   right: 0.9rem;
-  bottom: 0.55rem;
+  bottom: 0.5rem;
+  --friends-panel-width: 286px;
   z-index: 115;
   display: flex;
   flex-direction: column;
@@ -5014,18 +5015,63 @@ a {
   display: inline-flex;
   align-items: flex-end;
   gap: 0.34rem;
+  max-width: calc(100vw - 1.2rem);
+  width: auto;
 }
 
 .friends-dock-bar {
   pointer-events: auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0;
   border-radius: 10px 10px 0 0;
   border: 1px solid rgba(126, 165, 226, 0.26);
   padding: 0.24rem 0.38rem;
   background: rgba(12, 24, 48, 0.95);
-  min-width: 178px;
+  width: var(--friends-panel-width);
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.friends-dock-chat-tab {
+  border: 1px solid rgba(126, 165, 226, 0.26);
+  background: rgba(12, 24, 48, 0.95);
+  color: #d8ecff;
+  border-radius: 10px 10px 0 0;
+  min-width: 170px;
+  max-width: 220px;
+  padding: 0.24rem 0.38rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.friends-dock-chat-tab span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends-dock-chat-tab.active {
+  border-color: rgba(142, 232, 255, 0.52);
+  color: #ecfbff;
+}
+
+.friends-dock-chat-tab-close {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(115, 161, 232, 0.28);
+  background: rgba(10, 22, 44, 0.72);
+  color: #d2e9ff;
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .friends-dock-trigger {
@@ -5041,6 +5087,8 @@ a {
   font-weight: 650;
   padding: 0.18rem 0.04rem;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  width: 100%;
+  justify-content: center;
 }
 
 .friends-dock-trigger:hover {
@@ -5066,17 +5114,24 @@ a {
 }
 
 .friends-dock-panel {
-  width: min(320px, calc(100vw - 1.4rem));
-  max-height: min(68vh, 560px);
+  width: var(--friends-panel-width);
+  height: 290px;
   padding: 0.66rem;
   border-radius: 12px 12px 0 0;
   border: 1px solid rgba(130, 176, 244, 0.26);
   overflow: auto;
   display: grid;
-  gap: 0.56rem;
+  gap: 0.3rem;
+  align-content: start;
+  grid-auto-rows: max-content;
   pointer-events: auto;
   animation: friendsDockIn 220ms ease;
   background: rgba(9, 20, 40, 0.96);
+  flex: 0 0 auto;
+}
+
+.friends-dock-panel .kpi-label {
+  margin: 0;
 }
 
 @keyframes friendsDockIn {
@@ -5094,15 +5149,15 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 
 .friends-dock-head h3 {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.38rem;
-  font-size: 0.9rem;
+  gap: 0.32rem;
+  font-size: 0.84rem;
 }
 
 .friends-dock-head-actions {
@@ -5124,7 +5179,7 @@ a {
 .friends-dock-add {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.44rem;
+  gap: 0.32rem;
 }
 
 .friends-dock-toast {
@@ -5135,12 +5190,12 @@ a {
 
 .friends-dock-section {
   display: grid;
-  gap: 0.36rem;
+  gap: 0.24rem;
 }
 
 .friends-dock-list {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.12rem;
 }
 
 .friends-dock-item,
@@ -5160,7 +5215,7 @@ a {
   border-bottom: 1px solid rgba(111, 152, 214, 0.2);
   border-radius: 0;
   background: transparent;
-  padding: 0.25rem 0.1rem;
+  padding: 0.14rem 0.08rem;
 }
 
 .friends-dock-item-linklike:last-child {
@@ -5177,7 +5232,7 @@ a {
 }
 
 .friends-dock-user span {
-  font-size: 0.8rem;
+  font-size: 0.77rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5254,8 +5309,8 @@ a {
 
 .friends-chat-box {
   pointer-events: auto;
-  width: min(320px, calc(100vw - 1.4rem));
-  max-height: min(58vh, 480px);
+  width: var(--friends-panel-width);
+  height: 290px;
   border-radius: 10px 10px 0 0;
   border: 1px solid rgba(124, 170, 240, 0.3);
   background: rgba(8, 19, 39, 0.97);
@@ -5263,6 +5318,7 @@ a {
   grid-template-rows: auto minmax(120px, 1fr) auto auto;
   overflow: hidden;
   animation: friendsDockIn 180ms ease;
+  flex: 0 0 auto;
 }
 
 .friends-chat-head {
@@ -7295,16 +7351,26 @@ a {
   .friends-dock {
     right: 0.72rem;
     bottom: 5.9rem;
+    --friends-panel-width: min(320px, calc(100vw - 1.4rem));
   }
 
   .friends-dock-panel {
-    width: min(320px, calc(100vw - 1.4rem));
-    max-height: 52vh;
+    height: 300px;
   }
 
   .friends-chat-box {
-    width: min(320px, calc(100vw - 1.2rem));
-    max-height: 48vh;
+    height: 300px;
+  }
+
+  .friends-dock-stack {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 1080px) {
+  .friends-dock {
+    --friends-panel-width: min(300px, calc(100vw - 1.4rem));
   }
 
   .friends-dock-stack {

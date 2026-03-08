@@ -53,6 +53,7 @@ export default function FriendsDock() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [chatMinimized, setChatMinimized] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const pendingIncomingCount = friendsData?.pendingIncoming.length ?? 0;
@@ -187,6 +188,7 @@ export default function FriendsDock() {
         conversationId: json.data.id,
         peer,
       });
+      setChatMinimized(false);
       setChatInput("");
       setChatMessages([]);
       setChatError(null);
@@ -278,7 +280,7 @@ export default function FriendsDock() {
   return (
     <aside className={`friends-dock ${open ? "open" : ""}`} aria-label="Friends dock">
       <div className="friends-dock-stack">
-        {activeChat ? (
+        {activeChat && !chatMinimized ? (
           <section className="friends-chat-box glass">
             <header className="friends-chat-head">
               <div className="friends-chat-peer">
@@ -434,6 +436,27 @@ export default function FriendsDock() {
       </div>
 
       <div className="friends-dock-bar glass">
+        {activeChat ? (
+          <button
+            type="button"
+            className={`friends-dock-chat-tab ${!chatMinimized ? "active" : ""}`}
+            onClick={() => setChatMinimized((current) => !current)}
+            title={chatMinimized ? "Open chat box" : "Minimize chat box"}
+          >
+            <span>{activeChat.peer.displayName ?? activeChat.peer.username}</span>
+            <span
+              className="friends-dock-chat-tab-close"
+              onClick={(event) => {
+                event.stopPropagation();
+                setActiveChat(null);
+                setChatError(null);
+                setChatMessages([]);
+              }}
+            >
+              ×
+            </span>
+          </button>
+        ) : null}
         <button
           type="button"
           className="friends-dock-trigger"

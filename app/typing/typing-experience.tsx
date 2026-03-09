@@ -242,15 +242,21 @@ function isSameLeaderboard(
   return true;
 }
 
-export function TypingExperience({ variant = "normal" }: { variant?: TypingVariant }) {
+export function TypingExperience({
+  variant = "normal",
+  initialLanguage,
+}: {
+  variant?: TypingVariant;
+  initialLanguage?: LanguageCode;
+}) {
   const typingInputRef = useRef<HTMLInputElement>(null);
   const languageSelectRef = useRef<HTMLDivElement>(null);
   const difficulty: Difficulty = variant === "advanced" ? "hard" : "medium";
   const [duration, setDuration] = useState(DEFAULT_DURATION_SECONDS);
   const [leaderboardDuration, setLeaderboardDuration] = useState<number>(DEFAULT_DURATION_SECONDS);
   const [topRankingPeriod, setTopRankingPeriod] = useState<TopRankingPeriod>("today");
-  const [language, setLanguage] = useState<LanguageCode>("en");
-  const [words, setWords] = useState<string[]>(() => getInitialWords("en", difficulty));
+  const [language, setLanguage] = useState<LanguageCode>(initialLanguage ?? "en");
+  const [words, setWords] = useState<string[]>(() => getInitialWords(initialLanguage ?? "en", difficulty));
   const [wordBankOverrides, setWordBankOverrides] = useState<
     Partial<Record<LanguageCode, Partial<Record<WordBankMode, string[]>>>>
   >({});
@@ -356,6 +362,9 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
   );
 
   useEffect(() => {
+    if (initialLanguage) {
+      return;
+    }
     const preferred = resolvePreferredLanguage();
     if (preferred !== language) {
       setLanguage(preferred);
@@ -372,7 +381,7 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
       setHasSavedCurrentRun(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLanguage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -837,6 +846,14 @@ export function TypingExperience({ variant = "normal" }: { variant?: TypingVaria
     runStartedAtRef.current = null;
     lastActivityAtRef.current = null;
   }
+
+  useEffect(() => {
+    if (!initialLanguage || initialLanguage === language) {
+      return;
+    }
+    setLanguage(initialLanguage);
+    resetTest(initialLanguage, duration);
+  }, [duration, initialLanguage, language]);
 
   function focusTypingInput(): void {
     if (hasBlockingModal) return;

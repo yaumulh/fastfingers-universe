@@ -77,6 +77,26 @@ type SaveProgress = {
   progressPct: number;
   leveledUp: boolean;
 };
+type TypingResultPayload = {
+  wpm: number;
+  accuracy: number;
+  duration: number;
+  wordCount: number;
+  mistakes: number;
+  language: LanguageCode;
+  difficulty: Difficulty;
+};
+type TypingExperienceProps = {
+  variant?: TypingVariant;
+  initialLanguage?: LanguageCode;
+  fixedDuration?: number;
+  lockLanguage?: boolean;
+  hideTopRanking?: boolean;
+  disableGlobalSave?: boolean;
+  onSaveResult?: (payload: TypingResultPayload) => Promise<void> | void;
+  headerTitle?: string;
+  headerDescription?: string;
+};
 
 const MAX_CHARS_PER_LINE_NORMAL = 108;
 const MAX_CHARS_PER_LINE_ADVANCED = 102;
@@ -245,15 +265,20 @@ function isSameLeaderboard(
 export function TypingExperience({
   variant = "normal",
   initialLanguage,
-}: {
-  variant?: TypingVariant;
-  initialLanguage?: LanguageCode;
-}) {
+  fixedDuration,
+  lockLanguage = false,
+  hideTopRanking = false,
+  disableGlobalSave = false,
+  onSaveResult,
+  headerTitle,
+  headerDescription,
+}: TypingExperienceProps) {
   const typingInputRef = useRef<HTMLInputElement>(null);
   const languageSelectRef = useRef<HTMLDivElement>(null);
   const difficulty: Difficulty = variant === "advanced" ? "hard" : "medium";
-  const [duration, setDuration] = useState(DEFAULT_DURATION_SECONDS);
-  const [leaderboardDuration, setLeaderboardDuration] = useState<number>(DEFAULT_DURATION_SECONDS);
+  const initialDuration = fixedDuration ?? DEFAULT_DURATION_SECONDS;
+  const [duration, setDuration] = useState(initialDuration);
+  const [leaderboardDuration, setLeaderboardDuration] = useState<number>(initialDuration);
   const [topRankingPeriod, setTopRankingPeriod] = useState<TopRankingPeriod>("today");
   const [language, setLanguage] = useState<LanguageCode>(initialLanguage ?? "en");
   const [words, setWords] = useState<string[]>(() => getInitialWords(initialLanguage ?? "en", difficulty));
@@ -384,6 +409,12 @@ export function TypingExperience({
   }, [initialLanguage]);
 
   useEffect(() => {
+    if (hideTopRanking) {
+      setLeaderboardLoading(false);
+      setDailyLeaderboard([]);
+      setLeaderboardError(null);
+      return;
+    }
     let cancelled = false;
 
     async function loadWordBankOverrides() {
@@ -578,7 +609,7 @@ export function TypingExperience({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [difficulty, language, leaderboardDuration, topRankingPeriod]);
+  }, [difficulty, hideTopRanking, language, leaderboardDuration, topRankingPeriod]);
 
   useEffect(() => {
     const open = document.body.getAttribute("data-ff-ui-modal-open") === "1";
@@ -747,18 +778,66 @@ export function TypingExperience({
       return;
     }
 
-    if (!authUser) {
-      setHasSavedCurrentRun(true);
-      setSaveError(null);
-      setSaveProgress(null);
-      return;
-    }
-
     const idleMs = lastActivityAtRef.current ? Date.now() - lastActivityAtRef.current : Number.POSITIVE_INFINITY;
     const isAfkRun = totalTypedChars < AFK_MIN_TYPED_CHARS || idleMs > AFK_IDLE_THRESHOLD_MS;
     if (isAfkRun) {
       setHasSavedCurrentRun(true);
       setSaveError("AFK detected: result not saved.");
+      setSaveProgress(null);
+      return;
+    }
+
+    const payload: TypingResultPayload = {
+      wpm,
+      accuracy,
+      duration,
+      wordCount: words.length,
+      mistakes: Math.max(totalMistakes, 0),
+      language,
+      difficulty,
+    };
+
+    if (onSaveResult) {
+      const saveResultHandler = onSaveResult;
+      if (!authUser) {
+        setHasSavedCurrentRun(true);
+        setSaveError("Login first to submit this run.");
+        setSaveProgress(null);
+        return;
+      }
+      let cancelled = false;
+
+      async function persistCustomResult(): Promise<void> {
+        try {
+          setIsSaving(true);
+          setSaveError(null);
+          await saveResultHandler(payload);
+          if (!cancelled) {
+            setSaveProgress(null);
+            setHasSavedCurrentRun(true);
+          }
+        } catch (error) {
+          if (!cancelled) {
+            setSaveError(error instanceof Error ? error.message : "Failed to save result");
+            setSaveProgress(null);
+            setHasSavedCurrentRun(true);
+          }
+        } finally {
+          if (!cancelled) {
+            setIsSaving(false);
+          }
+        }
+      }
+
+      void persistCustomResult();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!authUser || disableGlobalSave) {
+      setHasSavedCurrentRun(true);
+      setSaveError(null);
       setSaveProgress(null);
       return;
     }
@@ -773,13 +852,7 @@ export function TypingExperience({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            wpm,
-            accuracy,
-            duration,
-            wordCount: words.length,
-            mistakes: Math.max(totalMistakes, 0),
-            language,
-            difficulty,
+            ...payload,
           }),
         });
 
@@ -824,6 +897,8 @@ export function TypingExperience({
     totalMistakes,
     language,
     difficulty,
+    disableGlobalSave,
+    onSaveResult,
   ]);
 
   function resetTest(nextLanguage = language, nextDuration = duration): void {
@@ -944,11 +1019,11 @@ export function TypingExperience({
       <section className="typing-header">
         <h1>
           <KeyboardIcon className="ui-icon ui-icon-accent" />
-          {variant === "advanced" ? "Typing Test (Advanced)" : "Typing Test (Normal)"}
+          {headerTitle ?? (variant === "advanced" ? "Typing Test (Advanced)" : "Typing Test (Normal)")}
         </h1>
         <p>
-          Word bank per level: {BANK_SIZE_PER_LEVEL} words. Display shows only 2 lines, then shifts
-          to the next 2-line block.
+          {headerDescription ??
+            `Word bank per level: ${BANK_SIZE_PER_LEVEL} words. Display shows only 2 lines, then shifts to the next 2-line block.`}
         </p>
       </section>
 
@@ -963,7 +1038,7 @@ export function TypingExperience({
               type="button"
               className={`modern-select-trigger ${isLanguageOpen ? "open" : ""}`}
               onClick={() => setIsLanguageOpen((current) => !current)}
-              disabled={status === "running"}
+              disabled={status === "running" || lockLanguage}
               aria-haspopup="listbox"
               aria-expanded={isLanguageOpen}
             >
@@ -1017,8 +1092,9 @@ export function TypingExperience({
                 key={item}
                 type="button"
                 className={`segment-btn ${duration === item ? "active" : ""}`}
-                disabled={status === "running"}
+                disabled={status === "running" || typeof fixedDuration === "number"}
                 onClick={() => {
+                  if (typeof fixedDuration === "number") return;
                   setDuration(item);
                   resetTest(language, item);
                   focusTypingInput();
@@ -1206,6 +1282,7 @@ export function TypingExperience({
         />
       </section>
 
+      {!hideTopRanking ? (
       <section className="typing-daily-leaderboard card glass" aria-label="Daily typing leaderboard">
         <h2 className="feature-title">
           <SparkIcon className="ui-icon ui-icon-accent" />
@@ -1298,6 +1375,7 @@ export function TypingExperience({
           </Link>
         </div>
       </section>
+      ) : null}
 
       <AnimatePresence>
         {showResultModal && (

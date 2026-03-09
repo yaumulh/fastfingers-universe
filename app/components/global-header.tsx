@@ -92,6 +92,8 @@ export default function GlobalHeader() {
   const [formUsername, setFormUsername] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formConfirm, setFormConfirm] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formEmailConfirm, setFormEmailConfirm] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -494,6 +496,8 @@ export default function GlobalHeader() {
     setFormError(null);
     setFormPassword("");
     setFormConfirm("");
+    setFormEmail("");
+    setFormEmailConfirm("");
     setShowPassword(false);
     setShowConfirm(false);
     setAuthModalOpen(true);
@@ -536,8 +540,18 @@ export default function GlobalHeader() {
 
   async function handleRegister(): Promise<void> {
     const nextUsername = formUsername.trim();
+    const nextEmail = formEmail.trim().toLowerCase();
+    const nextEmailConfirm = formEmailConfirm.trim().toLowerCase();
     if (!nextUsername) {
       setFormError("Username is required.");
+      return;
+    }
+    if (!nextEmail) {
+      setFormError("Email is required.");
+      return;
+    }
+    if (nextEmail !== nextEmailConfirm) {
+      setFormError("Email confirmation does not match.");
       return;
     }
     if (!formPassword.trim()) {
@@ -555,19 +569,35 @@ export default function GlobalHeader() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: nextUsername, password: formPassword }),
+        body: JSON.stringify({ username: nextUsername, password: formPassword, email: nextEmail }),
       });
-      const json = (await response.json()) as { data?: { username: string; displayName?: string | null }; error?: string };
+      const json = (await response.json()) as {
+        data?: {
+          username: string;
+          verificationRequired?: boolean;
+          previewVerifyUrl?: string | null;
+          emailSent?: boolean;
+        };
+        error?: string;
+      };
       if (!response.ok || !json.data) {
         setFormError(json.error ?? "Register failed.");
         return;
       }
-      await syncSessionFromServer();
+      setAuthMode("login");
       setFormPassword("");
       setFormConfirm("");
-      setAuthModalOpen(false);
-      setToastMessage(`Account created. Welcome, ${json.data.displayName ?? json.data.username}.`);
-      window.dispatchEvent(new CustomEvent("ff:auth-changed"));
+      setFormEmail("");
+      setFormEmailConfirm("");
+      setFormUsername("");
+      if (json.data.previewVerifyUrl) {
+        setToastMessage(`Account created. Open verify link: ${json.data.previewVerifyUrl}`);
+      } else if (json.data.emailSent) {
+        setToastMessage("Account created. Please check your email and verify before login.");
+      } else {
+        setToastMessage("Account created. Verification email is pending.");
+      }
+      return;
     } finally {
       setBusy(false);
     }
@@ -794,7 +824,7 @@ export default function GlobalHeader() {
           >
             <div className="auth-modal-head">
               <h2>{authTitle}</h2>
-              <p>{authMode === "register" ? "Register first, then join all game modes." : "Login to sync your name across all pages."}</p>
+              <p>{authMode === "register" ? "Register with email, verify it, then login to join all game modes." : "Login to sync your name across all pages."}</p>
             </div>
 
             <div className="auth-switch-row">
@@ -804,6 +834,8 @@ export default function GlobalHeader() {
                 onClick={() => {
                   setAuthMode("register");
                   setFormError(null);
+                  setFormEmail("");
+                  setFormEmailConfirm("");
                 }}
                 disabled={busy}
               >
@@ -815,6 +847,8 @@ export default function GlobalHeader() {
                 onClick={() => {
                   setAuthMode("login");
                   setFormError(null);
+                  setFormEmail("");
+                  setFormEmailConfirm("");
                 }}
                 disabled={busy}
               >
@@ -854,6 +888,30 @@ export default function GlobalHeader() {
                   </button>
                 </div>
               </label>
+              {authMode === "register" ? (
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={formEmail}
+                    onChange={(event) => setFormEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    disabled={busy}
+                  />
+                </label>
+              ) : null}
+              {authMode === "register" ? (
+                <label>
+                  Confirm Email
+                  <input
+                    type="email"
+                    value={formEmailConfirm}
+                    onChange={(event) => setFormEmailConfirm(event.target.value)}
+                    placeholder="Repeat your email"
+                    disabled={busy}
+                  />
+                </label>
+              ) : null}
               {authMode === "register" ? (
                 <div className="auth-strength">
                   <div className="auth-strength-track">

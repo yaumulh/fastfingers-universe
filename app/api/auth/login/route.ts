@@ -35,7 +35,16 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, username: true, displayName: true, avatarUrl: true, passwordHash: true, isActive: true },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      passwordHash: true,
+      isActive: true,
+      email: true,
+      emailVerifiedAt: true,
+    },
   });
   if (!user || !user.passwordHash) {
     return NextResponse.json(
@@ -49,6 +58,9 @@ export async function POST(request: Request) {
   }
   if (!user.isActive) {
     return NextResponse.json({ error: "Account is disabled. Contact admin." }, { status: 403 });
+  }
+  if (user.email && !user.emailVerifiedAt) {
+    return NextResponse.json({ error: "Please verify your email before login." }, { status: 403 });
   }
 
   await setAuthSession(user.id, user.username);

@@ -18,6 +18,9 @@ model User {
   isActive    Boolean      @default(true)
   passwordHash String?
   email       String?      @unique
+  emailVerifiedAt DateTime?
+  emailVerifyToken String? @unique
+  emailVerifyExpiresAt DateTime?
   rating      Int          @default(1000)
   trustScore  Int          @default(100)
   totalXp     Int          @default(0)

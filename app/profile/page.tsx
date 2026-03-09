@@ -73,12 +73,6 @@ export default function ProfilePage() {
   const [data, setData] = useState<ProfileResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [friendUsername, setFriendUsername] = useState("");
-  const [friendsData, setFriendsData] = useState<{
-    friends: Array<{ id: string; username: string; displayName?: string | null }>;
-    pendingIncoming: Array<{ id: string; user: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null } }>;
-    pendingOutgoing: Array<{ id: string; user: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null } }>;
-  } | null>(null);
   const [socialBusy, setSocialBusy] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [displayNameBusy, setDisplayNameBusy] = useState(false);
@@ -133,32 +127,6 @@ export default function ProfilePage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadFriends() {
-      try {
-        const response = await fetch("/api/friends", { cache: "no-store" });
-        if (!response.ok) {
-          return;
-        }
-        const json = (await response.json()) as { data: NonNullable<typeof friendsData> };
-        if (!cancelled) {
-          setFriendsData(json.data);
-        }
-      } catch {
-        if (!cancelled) {
-          setFriendsData(null);
-        }
-      }
-    }
-
-    void loadFriends();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const missionCompletion = useMemo(() => {
     if (!data || data.missions.length === 0) {
       return 0;
@@ -195,59 +163,6 @@ export default function ProfilePage() {
       ? Math.round((data.summary.competitionWins / data.summary.competitionJoined) * 100)
       : 0;
   }, [data]);
-
-  async function refreshFriends() {
-    const response = await fetch("/api/friends", { cache: "no-store" });
-    if (!response.ok) {
-      return;
-    }
-    const json = (await response.json()) as { data: NonNullable<typeof friendsData> };
-    setFriendsData(json.data);
-  }
-
-  async function sendFriendRequest() {
-    if (!friendUsername.trim()) {
-      return;
-    }
-    try {
-      setSocialBusy(true);
-      setSocialError(null);
-      const response = await fetch("/api/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: friendUsername.trim() }),
-      });
-      const json = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setSocialError(json.error ?? "Failed to send friend request.");
-        return;
-      }
-      setFriendUsername("");
-      await refreshFriends();
-    } finally {
-      setSocialBusy(false);
-    }
-  }
-
-  async function respondRequest(requestId: string, action: "accept" | "reject") {
-    try {
-      setSocialBusy(true);
-      setSocialError(null);
-      const response = await fetch("/api/friends/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId, action }),
-      });
-      const json = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setSocialError(json.error ?? "Failed to respond request.");
-        return;
-      }
-      await refreshFriends();
-    } finally {
-      setSocialBusy(false);
-    }
-  }
 
   async function createChallengeLink() {
     try {
@@ -682,70 +597,6 @@ export default function ProfilePage() {
               )}
             </section>
           </div>
-
-          <section className="card glass profile-social">
-            <h2 className="feature-title">
-              <UsersIcon className="ui-icon ui-icon-accent" />
-              Friends
-            </h2>
-            <div className="profile-social-row">
-              <input
-                className="chat-input"
-                value={friendUsername}
-                onChange={(event) => setFriendUsername(event.target.value)}
-                placeholder="Username to add friend"
-                disabled={socialBusy}
-              />
-              <button className="btn btn-ghost" type="button" onClick={() => void sendFriendRequest()} disabled={socialBusy}>
-                Add Friend
-              </button>
-            </div>
-            {friendsData ? (
-              <>
-                <p className="kpi-label">Friends: {friendsData.friends.length}</p>
-                <div className="leaderboard-chips">
-                  {friendsData.friends.map((friend) => (
-                    <Link
-                      key={friend.id}
-                      className="leaderboard-chip profile-friend-chip"
-                      href={`/u/${encodeURIComponent(friend.username)}`}
-                    >
-                      {friend.displayName ?? friend.username}
-                    </Link>
-                  ))}
-                </div>
-                {friendsData.pendingIncoming.length > 0 ? (
-                  <div className="profile-mission-list">
-                    {friendsData.pendingIncoming.map((incoming) => (
-                      <article className="profile-mission-item" key={incoming.id}>
-                        <p className="leaderboard-title">{incoming.user.displayName ?? incoming.user.username}</p>
-                        <div className="profile-social-actions">
-                          <button
-                            className="btn btn-primary"
-                            type="button"
-                            disabled={socialBusy}
-                            onClick={() => void respondRequest(incoming.id, "accept")}
-                          >
-                            Accept
-                          </button>
-                          <button
-                            className="btn btn-ghost"
-                            type="button"
-                            disabled={socialBusy}
-                            onClick={() => void respondRequest(incoming.id, "reject")}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <p className="kpi-label">Loading friends...</p>
-            )}
-          </section>
 
           <section className="card glass profile-social">
             <h2 className="feature-title">

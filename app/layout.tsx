@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default: "Fast-fingers Universe",
+      default: "Home | Fast-fingers Universe",
       template: "%s | Fast-fingers Universe",
     },
     description:

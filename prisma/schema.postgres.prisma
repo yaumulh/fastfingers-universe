@@ -21,6 +21,8 @@ model User {
   emailVerifiedAt DateTime?
   emailVerifyToken String? @unique
   emailVerifyExpiresAt DateTime?
+  passwordResetToken String? @unique
+  passwordResetExpiresAt DateTime?
   rating      Int          @default(1000)
   trustScore  Int          @default(100)
   totalXp     Int          @default(0)

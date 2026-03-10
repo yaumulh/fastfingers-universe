@@ -62,6 +62,7 @@ export default function VerifyEmailPage() {
           {status === "loading" ? <InfoIcon className="ui-icon" /> : <CheckIcon className="ui-icon" />} {message}
         </p>
         <div className="profile-social-actions">
+          <Link href="/forgot-password" className="btn btn-ghost">Forgot Password</Link>
           <Link href="/" className="btn btn-ghost">Back Home</Link>
           <button
             type="button"
@@ -75,4 +76,3 @@ export default function VerifyEmailPage() {
     </main>
   );
 }
-

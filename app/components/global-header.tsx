@@ -260,6 +260,7 @@ export default function GlobalHeader() {
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
 
+
   useEffect(() => {
     function onRequireLogin() {
       setRequireLoginNotice(true);
@@ -955,6 +956,17 @@ export default function GlobalHeader() {
                   </button>
                 </div>
               </label>
+              {authMode === "login" ? (
+                <div className="auth-helper-row">
+                  <Link
+                    href="/forgot-password"
+                    className="auth-help-link"
+                    onClick={() => setAuthModalOpen(false)}
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              ) : null}
               {authMode === "register" ? (
                 <label>
                   Confirm Password
@@ -1009,7 +1021,6 @@ export default function GlobalHeader() {
                 </button>
               </div>
             ) : null}
-
             <div className="auth-modal-actions">
               <button className="btn btn-ghost" type="button" onClick={() => setAuthModalOpen(false)} disabled={busy}>
                 Cancel

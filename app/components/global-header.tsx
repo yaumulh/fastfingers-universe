@@ -867,27 +867,6 @@ export default function GlobalHeader() {
                   disabled={busy}
                 />
               </label>
-              <label>
-                Password
-                <div className="auth-password-wrap">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={formPassword}
-                    onChange={(event) => setFormPassword(event.target.value)}
-                    placeholder="Minimum 6 characters"
-                    disabled={busy}
-                  />
-                  <button
-                    className="auth-toggle-btn"
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    disabled={busy}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOffIcon className="ui-icon" /> : <EyeIcon className="ui-icon" />}
-                  </button>
-                </div>
-              </label>
               {authMode === "register" ? (
                 <label>
                   Email
@@ -912,27 +891,27 @@ export default function GlobalHeader() {
                   />
                 </label>
               ) : null}
-              {authMode === "register" ? (
-                <div className="auth-strength">
-                  <div className="auth-strength-track">
-                    <span
-                      className={`auth-strength-fill strength-${passwordStrength.score}`}
-                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
-                    />
-                  </div>
-                  <p className="auth-strength-label">
-                    Password strength: <strong>{passwordStrength.label}</strong>
-                  </p>
-                  <ul className="auth-requirements" aria-label="Password requirements">
-                    {passwordRequirements.map((item) => (
-                      <li key={item.label} className={item.met ? "met" : "unmet"}>
-                        <span className="auth-requirement-dot" aria-hidden="true" />
-                        {item.label}
-                      </li>
-                    ))}
-                  </ul>
+              <label>
+                Password
+                <div className="auth-password-wrap">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formPassword}
+                    onChange={(event) => setFormPassword(event.target.value)}
+                    placeholder="Minimum 6 characters"
+                    disabled={busy}
+                  />
+                  <button
+                    className="auth-toggle-btn"
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    disabled={busy}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOffIcon className="ui-icon" /> : <EyeIcon className="ui-icon" />}
+                  </button>
                 </div>
-              ) : null}
+              </label>
               {authMode === "register" ? (
                 <label>
                   Confirm Password
@@ -955,6 +934,27 @@ export default function GlobalHeader() {
                     </button>
                   </div>
                 </label>
+              ) : null}
+              {authMode === "register" ? (
+                <div className="auth-strength">
+                  <div className="auth-strength-track">
+                    <span
+                      className={`auth-strength-fill strength-${passwordStrength.score}`}
+                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                    />
+                  </div>
+                  <p className="auth-strength-label">
+                    Password strength: <strong>{passwordStrength.label}</strong>
+                  </p>
+                  <ul className="auth-requirements" aria-label="Password requirements">
+                    {passwordRequirements.map((item) => (
+                      <li key={item.label} className={item.met ? "met" : "unmet"}>
+                        <span className="auth-requirement-dot" aria-hidden="true" />
+                        {item.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
             </form>
 

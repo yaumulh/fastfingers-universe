@@ -302,6 +302,8 @@ export function TypingExperience({
   const [animatedXp, setAnimatedXp] = useState(0);
   const animatedXpRef = useRef(0);
   const [hasSavedCurrentRun, setHasSavedCurrentRun] = useState(false);
+  const [savedResultId, setSavedResultId] = useState<string | null>(null);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [authUser, setAuthUser] = useState<SessionUser | null>(null);
   const [ghostReplay, setGhostReplay] = useState<GhostReplay | null>(null);
@@ -774,6 +776,12 @@ export function TypingExperience({
   }, [saveProgress?.leveledUp, saveProgress?.level]);
 
   useEffect(() => {
+    if (!shareNotice) return;
+    const timer = window.setTimeout(() => setShareNotice(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [shareNotice]);
+
+  useEffect(() => {
     if (status !== "finished" || isSaving || hasSavedCurrentRun) {
       return;
     }
@@ -784,6 +792,7 @@ export function TypingExperience({
       setHasSavedCurrentRun(true);
       setSaveError("AFK detected: result not saved.");
       setSaveProgress(null);
+      setSavedResultId(null);
       return;
     }
 
@@ -814,12 +823,14 @@ export function TypingExperience({
           await saveResultHandler(payload);
           if (!cancelled) {
             setSaveProgress(null);
+            setSavedResultId(null);
             setHasSavedCurrentRun(true);
           }
         } catch (error) {
           if (!cancelled) {
             setSaveError(error instanceof Error ? error.message : "Failed to save result");
             setSaveProgress(null);
+            setSavedResultId(null);
             setHasSavedCurrentRun(true);
           }
         } finally {
@@ -845,6 +856,8 @@ export function TypingExperience({
     let cancelled = false;
 
     async function persistResult(): Promise<void> {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 9000);
       try {
         setIsSaving(true);
         setSaveError(null);
@@ -854,25 +867,36 @@ export function TypingExperience({
           body: JSON.stringify({
             ...payload,
           }),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
           throw new Error("Failed to save result");
         }
         const json = (await response.json()) as {
+          data?: { id?: string };
           progress?: SaveProgress | null;
         };
         if (!cancelled) {
           setSaveProgress(json.progress ?? null);
+          setSavedResultId(json.data?.id ?? null);
           setHasSavedCurrentRun(true);
         }
       } catch (error) {
         if (!cancelled) {
-          setSaveError(error instanceof Error ? error.message : "Failed to save result");
+          const message =
+            error instanceof Error && error.name === "AbortError"
+              ? "Save timeout. Please try again."
+              : error instanceof Error
+                ? error.message
+                : "Failed to save result";
+          setSaveError(message);
           setSaveProgress(null);
+          setSavedResultId(null);
           setHasSavedCurrentRun(true);
         }
       } finally {
+        window.clearTimeout(timeout);
         if (!cancelled) {
           setIsSaving(false);
         }
@@ -916,6 +940,8 @@ export function TypingExperience({
     setSaveError(null);
     setSaveProgress(null);
     setHasSavedCurrentRun(false);
+    setSavedResultId(null);
+    setShareNotice(null);
     setCurrentReplayCheckpoints([]);
     setGhostProgress(0);
     runStartedAtRef.current = null;
@@ -935,6 +961,24 @@ export function TypingExperience({
     window.requestAnimationFrame(() => {
       typingInputRef.current?.focus();
     });
+  }
+
+  async function copyShareLink(): Promise<void> {
+    if (!savedResultId) {
+      return;
+    }
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const shareUrl = `${origin}/share/run/${encodeURIComponent(savedResultId)}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareNotice("Share link copied.");
+    } catch {
+      setShareNotice("Copy failed. Open share card to copy.");
+      window.open(shareUrl, "_blank", "noopener,noreferrer");
+    }
   }
 
   function submitCurrentWord(): void {
@@ -1454,6 +1498,23 @@ export function TypingExperience({
               </p>
 
               <div className="result-modal-actions">
+                {authUser ? (
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={() => void copyShareLink()}
+                    disabled={!savedResultId || isSaving || Boolean(saveError)}
+                    title={
+                      saveError
+                        ? "Result failed to save"
+                        : !savedResultId
+                          ? "Wait for result to finish saving"
+                          : "Copy share link"
+                    }
+                  >
+                    {isSaving ? "Saving..." : "Share"}
+                  </button>
+                ) : null}
                 <button
                   className="btn btn-primary"
                   type="button"
@@ -1465,6 +1526,7 @@ export function TypingExperience({
                   OK
                 </button>
               </div>
+              {shareNotice ? <p className="kpi-label result-share-note">{shareNotice}</p> : null}
             </motion.section>
           </motion.div>
         )}

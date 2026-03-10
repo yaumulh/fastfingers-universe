@@ -4264,6 +4264,12 @@ a {
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.result-share-note {
+  margin-top: 0.6rem;
+  color: rgba(181, 226, 255, 0.9);
 }
 
 .result-level-up-banner {
@@ -5017,6 +5023,76 @@ a {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
+}
+
+.share-page .typing-header {
+  margin-bottom: 0.6rem;
+}
+
+.share-card {
+  max-width: 720px;
+  display: grid;
+  gap: 1rem;
+}
+
+.share-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.share-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid rgba(157, 191, 255, 0.22);
+  background: rgba(10, 20, 40, 0.6);
+}
+
+.share-avatar-fallback {
+  display: inline-grid;
+  place-items: center;
+  font-weight: 700;
+  color: #cfe9ff;
+}
+
+.share-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e9f5ff;
+}
+
+.share-title p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.share-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.7rem;
+}
+
+.share-stats article {
+  border: 1px solid rgba(157, 191, 255, 0.16);
+  border-radius: 12px;
+  padding: 0.7rem 0.75rem;
+  background: rgba(7, 14, 31, 0.5);
+}
+
+.share-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
 }
 
 .profile-friend-chip {

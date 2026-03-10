@@ -95,6 +95,7 @@ export default function GlobalHeader() {
   const [formEmail, setFormEmail] = useState("");
   const [formEmailConfirm, setFormEmailConfirm] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [formErrorCode, setFormErrorCode] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -494,6 +495,7 @@ export default function GlobalHeader() {
   function openAuthModal(mode: "login" | "register"): void {
     setAuthMode(mode);
     setFormError(null);
+    setFormErrorCode(null);
     setFormPassword("");
     setFormConfirm("");
     setFormEmail("");
@@ -517,14 +519,20 @@ export default function GlobalHeader() {
     try {
       setBusy(true);
       setFormError(null);
+      setFormErrorCode(null);
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: nextUsername, password: formPassword }),
       });
-      const json = (await response.json()) as { data?: { username: string; displayName?: string | null }; error?: string };
+      const json = (await response.json()) as {
+        data?: { username: string; displayName?: string | null };
+        error?: string;
+        code?: string;
+      };
       if (!response.ok || !json.data) {
         setFormError(json.error ?? "Login failed.");
+        setFormErrorCode(json.code ?? null);
         return;
       }
       await syncSessionFromServer();
@@ -566,6 +574,7 @@ export default function GlobalHeader() {
     try {
       setBusy(true);
       setFormError(null);
+      setFormErrorCode(null);
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -635,6 +644,38 @@ export default function GlobalHeader() {
       return;
     }
     await handleLogin();
+  }
+
+  async function handleResendVerification(): Promise<void> {
+    const nextUsername = formUsername.trim();
+    if (!nextUsername) {
+      setFormError("Username is required.");
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setFormError(null);
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: nextUsername }),
+      });
+      const json = (await response.json()) as { data?: { emailSent?: boolean; previewVerifyUrl?: string | null }; error?: string };
+      if (!response.ok || !json.data) {
+        setFormError(json.error ?? "Failed to resend verification email.");
+        return;
+      }
+      if (json.data.previewVerifyUrl) {
+        setToastMessage(`Open verify link: ${json.data.previewVerifyUrl}`);
+      } else if (json.data.emailSent) {
+        setToastMessage("Verification email resent. Check your inbox.");
+      } else {
+        setToastMessage("Verification email pending.");
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleSaveDisplayName(): Promise<void> {
@@ -834,6 +875,7 @@ export default function GlobalHeader() {
                 onClick={() => {
                   setAuthMode("register");
                   setFormError(null);
+                  setFormErrorCode(null);
                   setFormEmail("");
                   setFormEmailConfirm("");
                 }}
@@ -847,6 +889,7 @@ export default function GlobalHeader() {
                 onClick={() => {
                   setAuthMode("login");
                   setFormError(null);
+                  setFormErrorCode(null);
                   setFormEmail("");
                   setFormEmailConfirm("");
                 }}
@@ -959,6 +1002,13 @@ export default function GlobalHeader() {
             </form>
 
             {formError ? <p className="kpi-label auth-error">{formError}</p> : null}
+            {formError && formErrorCode === "email_unverified" ? (
+              <div className="auth-resend-wrap">
+                <button className="btn btn-ghost" type="button" onClick={() => void handleResendVerification()} disabled={busy}>
+                  Resend Verification Email
+                </button>
+              </div>
+            ) : null}
 
             <div className="auth-modal-actions">
               <button className="btn btn-ghost" type="button" onClick={() => setAuthModalOpen(false)} disabled={busy}>

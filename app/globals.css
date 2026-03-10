@@ -973,6 +973,12 @@ a {
   gap: 0.55rem;
 }
 
+.auth-resend-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.4rem;
+}
+
 .auth-spinner {
   width: 13px;
   height: 13px;

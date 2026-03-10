@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import nodemailer from "nodemailer";
 
 export function normalizeEmail(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -38,12 +39,6 @@ export async function sendVerificationEmail(params: {
   username: string;
   verifyUrl: string;
 }): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM;
-  if (!apiKey || !fromEmail) {
-    return false;
-  }
-
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a;">
       <h2 style="margin:0 0 8px;">Verify your email</h2>
@@ -53,6 +48,40 @@ export async function sendVerificationEmail(params: {
       <p style="margin:4px 0 0;font-size:13px;word-break:break-all;">${params.verifyUrl}</p>
     </div>
   `;
+
+  const fromEmail = process.env.EMAIL_FROM;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPortRaw = process.env.SMTP_PORT;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (smtpHost && smtpUser && smtpPass && fromEmail) {
+    const smtpPort = smtpPortRaw ? Number(smtpPortRaw) : 465;
+    const secure = smtpPort === 465;
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+
+    try {
+      await transporter.sendMail({
+        from: fromEmail,
+        to: params.toEmail,
+        subject: "Confirm your Fast-fingers Universe email",
+        html,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !fromEmail) {
+    return false;
+  }
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -70,4 +99,3 @@ export async function sendVerificationEmail(params: {
 
   return response.ok;
 }
-

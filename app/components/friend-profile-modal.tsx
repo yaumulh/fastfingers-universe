@@ -58,7 +58,7 @@ type FriendProfileData = {
     wpm: number;
     accuracy: number;
     mode?: "normal" | "advanced";
-    language: string;
+    language: LanguageCode;
     duration: number;
   }>;
   recentCompetitions: Array<{

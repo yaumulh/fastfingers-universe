@@ -253,6 +253,7 @@ export default function SideRailNav() {
     <aside className="side-rail" aria-label="Main sections">
       <Link href="/" className="side-rail-brand" aria-label="Fast-fingers Universe home">
         {sideRailIcon ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={sideRailIcon} alt="" className="side-rail-brand-logo" />
         ) : !brandingReady ? (
           <span className="side-rail-brand-logo side-rail-brand-logo-placeholder" aria-hidden="true" />

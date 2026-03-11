@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EyeIcon, GaugeIcon, InfoIcon, PencilIcon, SparkIcon, TimerIcon, TrophyIcon, UsersIcon } from "../components/icons";
 import { RecentRunsChart } from "../components/recent-runs-chart";
 import { UserAvatar } from "../components/user-avatar";
-import { LANGUAGE_LABELS } from "../typing/word-banks";
+import { LANGUAGE_LABELS, type LanguageCode } from "../typing/word-banks";
 
 type ProfileResponse = {
   data: {
@@ -54,7 +54,7 @@ type ProfileResponse = {
       wpm: number;
       accuracy: number;
       mode: "normal" | "advanced";
-      language: string;
+      language: LanguageCode;
       duration: number;
     }>;
     recentCompetitions: Array<{

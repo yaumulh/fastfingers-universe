@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GaugeIcon, SparkIcon, TimerIcon, TrophyIcon, UserIcon } from "@/app/components/icons";
 import { RecentRunsChart } from "@/app/components/recent-runs-chart";
 import { UserAvatar } from "@/app/components/user-avatar";
+import { type LanguageCode } from "@/app/typing/word-banks";
 
 type PublicProfileResponse = {
   data: {
@@ -41,7 +42,7 @@ type PublicProfileResponse = {
       wpm: number;
       accuracy: number;
       mode: "normal" | "advanced";
-      language: string;
+      language: LanguageCode;
       duration: number;
     }>;
     recentCompetitions: Array<{

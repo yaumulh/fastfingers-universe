@@ -249,12 +249,12 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
   const visibleStartLine = useMemo(() => (ranges.length <= VISIBLE_LINES ? 0 : Math.min(lineIndex, ranges.length - VISIBLE_LINES)), [lineIndex, ranges.length]);
   const visibleRanges = useMemo(() => ranges.slice(visibleStartLine, visibleStartLine + VISIBLE_LINES), [ranges, visibleStartLine]);
 
-  function focusTypingInput() {
+  const focusTypingInput = useCallback(() => {
     if (hasBlockingModal) return;
     window.requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
-  }
+  }, [hasBlockingModal]);
 
   useEffect(() => {
     const open = document.body.getAttribute("data-ff-ui-modal-open") === "1";
@@ -282,7 +282,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
       focusTypingInput();
     }
     prevBlockingModalRef.current = hasBlockingModal;
-  }, [hasBlockingModal, selectedEnded, joined, status]);
+  }, [hasBlockingModal, selectedEnded, joined, status, focusTypingInput]);
 
   const loadCompetition = useCallback(async () => {
     const res = await fetch(`/api/competitions/${roomId}`, { cache: "no-store" });
@@ -537,7 +537,7 @@ export default function CompetitionRoomPage({ params }: { params: { id: string }
     if (status === "finished") return;
     if (hasBlockingModal) return;
     focusTypingInput();
-  }, [busy, competition, selectedEnded, joined, status, hasBlockingModal]);
+  }, [busy, competition, selectedEnded, joined, status, hasBlockingModal, focusTypingInput]);
 
   useEffect(() => {
     if (!selectedEnded) return;

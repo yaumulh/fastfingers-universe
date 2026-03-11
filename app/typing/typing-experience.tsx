@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertIcon,
@@ -330,6 +330,12 @@ export function TypingExperience({
   const progress = clampPercent((currentWordIndex / words.length) * 100);
   const showResultModal = status === "finished" && timeLeft === 0;
   const hasBlockingModal = uiModalOpen || showResultModal;
+  const focusTypingInput = useCallback((): void => {
+    if (hasBlockingModal) return;
+    window.requestAnimationFrame(() => {
+      typingInputRef.current?.focus();
+    });
+  }, [hasBlockingModal]);
   const estimatedXp = getTypingXpGain({
     wpm,
     accuracy,
@@ -344,20 +350,26 @@ export function TypingExperience({
   const maxCharsPerLine = variant === "advanced" ? MAX_CHARS_PER_LINE_ADVANCED : MAX_CHARS_PER_LINE_NORMAL;
   const currentWordBankMode: WordBankMode = resolveWordBankMode(difficulty);
 
-  function getSeedOverride(nextLanguage: LanguageCode, nextDifficulty: Difficulty): string[] | null {
-    const mode = resolveWordBankMode(nextDifficulty);
-    const seeded = wordBankOverrides[nextLanguage]?.[mode];
-    if (!seeded || seeded.length === 0) return null;
-    return seeded;
-  }
+  const getSeedOverride = useCallback(
+    (nextLanguage: LanguageCode, nextDifficulty: Difficulty): string[] | null => {
+      const mode = resolveWordBankMode(nextDifficulty);
+      const seeded = wordBankOverrides[nextLanguage]?.[mode];
+      if (!seeded || seeded.length === 0) return null;
+      return seeded;
+    },
+    [wordBankOverrides],
+  );
 
-  function generateWords(nextLanguage: LanguageCode, nextDifficulty: Difficulty, stable = false): string[] {
-    const overrideSeed = getSeedOverride(nextLanguage, nextDifficulty);
-    if (overrideSeed) {
-      return buildWordPoolFromSeed(overrideSeed, nextDifficulty, { stable });
-    }
-    return stable ? getStableWordPool(nextLanguage, nextDifficulty) : getWordPool(nextLanguage, nextDifficulty);
-  }
+  const generateWords = useCallback(
+    (nextLanguage: LanguageCode, nextDifficulty: Difficulty, stable = false): string[] => {
+      const overrideSeed = getSeedOverride(nextLanguage, nextDifficulty);
+      if (overrideSeed) {
+        return buildWordPoolFromSeed(overrideSeed, nextDifficulty, { stable });
+      }
+      return stable ? getStableWordPool(nextLanguage, nextDifficulty) : getWordPool(nextLanguage, nextDifficulty);
+    },
+    [getSeedOverride],
+  );
 
   const { ranges: lineRanges, wordToLine } = useMemo(
     () => buildLineRanges(words, maxCharsPerLine),
@@ -451,7 +463,7 @@ export function TypingExperience({
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [hideTopRanking, language]);
 
   useEffect(() => {
     setBestWpm(0);
@@ -501,6 +513,7 @@ export function TypingExperience({
     currentWordBankMode,
     currentWordIndex,
     difficulty,
+    generateWords,
     language,
     status,
     wordBankOverrides,
@@ -639,7 +652,7 @@ export function TypingExperience({
       focusTypingInput();
     }
     prevBlockingModalRef.current = hasBlockingModal;
-  }, [hasBlockingModal, status]);
+  }, [hasBlockingModal, status, focusTypingInput]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent): void {
@@ -939,28 +952,31 @@ export function TypingExperience({
     onSaveResult,
   ]);
 
-  function resetTest(nextLanguage = language, nextDuration = duration): void {
-    const nextWords = generateWords(nextLanguage, difficulty, false);
-    setWords(nextWords);
-    setWordStates(Array(nextWords.length).fill("pending"));
-    setCurrentWordIndex(0);
-    setCurrentInput("");
-    setTimeLeft(nextDuration);
-    setStatus("idle");
-    setTotalCorrectChars(0);
-    setTotalTypedChars(0);
-    setTotalMistakes(0);
-    setTypedWordsCount(0);
-    setSaveError(null);
-    setSaveProgress(null);
-    setHasSavedCurrentRun(false);
-    setSavedResultId(null);
-    setShareNotice(null);
-    setCurrentReplayCheckpoints([]);
-    setGhostProgress(0);
-    runStartedAtRef.current = null;
-    lastActivityAtRef.current = null;
-  }
+  const resetTest = useCallback(
+    (nextLanguage = language, nextDuration = duration): void => {
+      const nextWords = generateWords(nextLanguage, difficulty, false);
+      setWords(nextWords);
+      setWordStates(Array(nextWords.length).fill("pending"));
+      setCurrentWordIndex(0);
+      setCurrentInput("");
+      setTimeLeft(nextDuration);
+      setStatus("idle");
+      setTotalCorrectChars(0);
+      setTotalTypedChars(0);
+      setTotalMistakes(0);
+      setTypedWordsCount(0);
+      setSaveError(null);
+      setSaveProgress(null);
+      setHasSavedCurrentRun(false);
+      setSavedResultId(null);
+      setShareNotice(null);
+      setCurrentReplayCheckpoints([]);
+      setGhostProgress(0);
+      runStartedAtRef.current = null;
+      lastActivityAtRef.current = null;
+    },
+    [difficulty, duration, generateWords, language],
+  );
 
   useEffect(() => {
     if (!initialLanguage || initialLanguage === language) {
@@ -968,14 +984,7 @@ export function TypingExperience({
     }
     setLanguage(initialLanguage);
     resetTest(initialLanguage, duration);
-  }, [duration, initialLanguage, language]);
-
-  function focusTypingInput(): void {
-    if (hasBlockingModal) return;
-    window.requestAnimationFrame(() => {
-      typingInputRef.current?.focus();
-    });
-  }
+  }, [duration, initialLanguage, language, resetTest]);
 
   async function copyShareLink(): Promise<void> {
     const origin =

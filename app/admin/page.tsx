@@ -577,8 +577,10 @@ export default function AdminPage() {
                   <div className="admin-branding-row">
                     <div className="admin-branding-preview">
                       {currentLogo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={currentLogo} alt={`${item.label} logo`} className="admin-branding-image" />
                       ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.fallback} alt={`Default ${item.label} logo`} className="admin-branding-image" />
                       )}
                     </div>

@@ -28,6 +28,7 @@ export function UserAvatar({
   return (
     <span className={classes} title={title} aria-hidden="true">
       {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={avatarUrl} alt="" className="user-avatar-image" />
       ) : (
         <span className="user-avatar-fallback">{initial}</span>

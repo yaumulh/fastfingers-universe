@@ -41,6 +41,8 @@ type PublicProfileResponse = {
       wpm: number;
       accuracy: number;
       mode: "normal" | "advanced";
+      language: string;
+      duration: number;
     }>;
     recentCompetitions: Array<{
       competitionId: string;

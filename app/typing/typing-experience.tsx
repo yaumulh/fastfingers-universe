@@ -782,6 +782,20 @@ export function TypingExperience({
   }, [shareNotice]);
 
   useEffect(() => {
+    if (!isSaving) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setSaveError("Leaderboard save timeout. Share is still available.");
+      setSaveProgress(null);
+      setSavedResultId(null);
+      setHasSavedCurrentRun(true);
+      setIsSaving(false);
+    }, 10_000);
+    return () => window.clearTimeout(timer);
+  }, [isSaving]);
+
+  useEffect(() => {
     if (status !== "finished" || isSaving || hasSavedCurrentRun) {
       return;
     }
@@ -886,7 +900,7 @@ export function TypingExperience({
         if (!cancelled) {
           const message =
             error instanceof Error && error.name === "AbortError"
-              ? "Save timeout. Please try again."
+              ? "Leaderboard save timeout. Share is still available."
               : error instanceof Error
                 ? error.message
                 : "Failed to save result";
@@ -964,14 +978,24 @@ export function TypingExperience({
   }
 
   async function copyShareLink(): Promise<void> {
-    if (!savedResultId) {
-      return;
-    }
     const origin =
       typeof window !== "undefined"
         ? window.location.origin
         : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const shareUrl = `${origin}/share/run/${encodeURIComponent(savedResultId)}`;
+    const modeLabel = difficulty === "hard" ? "advanced" : "normal";
+    const shareUrl = savedResultId
+      ? `${origin}/share/run/${encodeURIComponent(savedResultId)}`
+      : `${origin}/share/preview?${new URLSearchParams({
+          wpm: String(wpm),
+          accuracy: String(accuracy),
+          duration: String(duration),
+          words: String(typedWordsCount),
+          mistakes: String(Math.max(totalMistakes, 0)),
+          language,
+          mode: modeLabel,
+          name: authUser?.displayName ?? authUser?.username ?? "Guest",
+          at: new Date().toISOString(),
+        }).toString()}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setShareNotice("Share link copied.");
@@ -1489,32 +1513,57 @@ export function TypingExperience({
                   : isSaving
                     ? `Saving result... (Estimated +${estimatedXp} XP)`
                     : saveError
-                      ? `Save error: ${saveError}`
+                      ? "Leaderboard save failed, but your share link is ready."
                       : saveProgress
                         ? saveProgress.leveledUp
-                          ? `Result saved • +${saveProgress.xpGained} XP • Congratulations, you reached Level ${saveProgress.level}!`
-                          : `Result saved • +${saveProgress.xpGained} XP • Level ${saveProgress.level}`
+                          ? `Result saved - +${saveProgress.xpGained} XP - Congratulations, you reached Level ${saveProgress.level}!`
+                          : `Result saved - +${saveProgress.xpGained} XP - Level ${saveProgress.level}`
                         : "Result saved to leaderboard."}
               </p>
 
               <div className="result-modal-actions">
-                {authUser ? (
-                  <button
-                    className="btn btn-ghost"
-                    type="button"
-                    onClick={() => void copyShareLink()}
-                    disabled={!savedResultId || isSaving || Boolean(saveError)}
-                    title={
-                      saveError
-                        ? "Result failed to save"
-                        : !savedResultId
-                          ? "Wait for result to finish saving"
-                          : "Copy share link"
-                    }
-                  >
-                    {isSaving ? "Saving..." : "Share"}
-                  </button>
-                ) : null}
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => void copyShareLink()}
+                  title={
+                    saveError
+                      ? "Leaderboard save failed, sharing preview instead"
+                      : savedResultId
+                        ? "Copy share link"
+                        : "Copy share preview link"
+                  }
+                >
+                  Copy Share Link
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    const origin =
+                      typeof window !== "undefined"
+                        ? window.location.origin
+                        : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+                    const modeLabel = difficulty === "hard" ? "advanced" : "normal";
+                    const shareUrl = savedResultId
+                      ? `${origin}/share/run/${encodeURIComponent(savedResultId)}`
+                      : `${origin}/share/preview?${new URLSearchParams({
+                          wpm: String(wpm),
+                          accuracy: String(accuracy),
+                          duration: String(duration),
+                          words: String(typedWordsCount),
+                          mistakes: String(Math.max(totalMistakes, 0)),
+                          language,
+                          mode: modeLabel,
+                          name: authUser?.displayName ?? authUser?.username ?? "Guest",
+                          at: new Date().toISOString(),
+                        }).toString()}`;
+                    window.open(shareUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  title="Open share card"
+                >
+                  Open Share Card
+                </button>
                 <button
                   className="btn btn-primary"
                   type="button"

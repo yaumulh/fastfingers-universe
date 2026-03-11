@@ -76,7 +76,7 @@ export async function GET(_request: Request, context: RouteContext) {
       where: { userId: target.id },
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { createdAt: true, wpm: true, accuracy: true, difficulty: true },
+      select: { createdAt: true, wpm: true, accuracy: true, difficulty: true, language: true, duration: true },
     }),
     prisma.competitionParticipant.count({
       where: { userId: target.id, testsCount: { gt: 0 } },
@@ -128,6 +128,8 @@ export async function GET(_request: Request, context: RouteContext) {
         wpm: Math.round(row.wpm),
         accuracy: Math.round(row.accuracy),
         mode: row.difficulty === "hard" ? "advanced" : "normal",
+        language: row.language,
+        duration: row.duration,
       })),
       recentCompetitions: recentCompetitions.map((row) => ({
         competitionId: row.competition.id,

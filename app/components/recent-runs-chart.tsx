@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { LanguageFlagIcon } from "@/app/components/language-flag-icon";
+import { LANGUAGE_LABELS, type LanguageCode } from "@/app/typing/word-banks";
 
 type RunPoint = {
   date: string;
   wpm: number;
   accuracy: number;
   mode?: "normal" | "advanced";
+  language: LanguageCode;
+  duration?: number;
 };
 
 type RecentRunsChartProps = {
@@ -22,6 +26,7 @@ type ChartPoint = {
   x: number;
   yWpm: number;
   yAcc: number;
+  language: LanguageCode;
 };
 
 function clamp(n: number, min: number, max: number): number {
@@ -46,6 +51,9 @@ function smoothPath(points: Array<{ x: number; y: number }>): string {
 export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
   const [viewMode, setViewMode] = useState<"both" | "wpm" | "acc">("both");
   const [typingMode, setTypingMode] = useState<"normal" | "advanced">("normal");
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const durationOptions = useMemo(() => [15, 30, 60, 120], []);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -73,9 +81,72 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
     }
   }, [modeAvailability.hasAdvanced, modeAvailability.hasNormal, typingMode]);
 
+  const availableLanguages = useMemo(() => {
+    const set = new Set<LanguageCode>();
+    for (const run of runs) {
+      const isAdvanced = run.mode === "advanced";
+      if (typingMode === "advanced" ? isAdvanced : !isAdvanced) {
+        set.add(run.language);
+      }
+    }
+    return Array.from(set);
+  }, [runs, typingMode]);
+
+  const availableDurations = useMemo(() => {
+    const set = new Set<number>();
+    for (const run of runs) {
+      const isAdvanced = run.mode === "advanced";
+      const matchesMode = typingMode === "advanced" ? isAdvanced : !isAdvanced;
+      const matchesLanguage = selectedLanguage ? run.language === selectedLanguage : true;
+      if (matchesMode && matchesLanguage) {
+        if (typeof run.duration === "number" && Number.isFinite(run.duration)) {
+          set.add(run.duration);
+        }
+      }
+    }
+    return set;
+  }, [runs, selectedLanguage, typingMode]);
+
+  const latestLanguage = useMemo(() => {
+    const filtered = runs
+      .filter((run) => (typingMode === "advanced" ? run.mode === "advanced" : run.mode !== "advanced"))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return filtered.length ? filtered[filtered.length - 1].language : null;
+  }, [runs, typingMode]);
+
+  useEffect(() => {
+    if (availableLanguages.length === 0) {
+      setSelectedLanguage(null);
+      return;
+    }
+    if (selectedLanguage && availableLanguages.includes(selectedLanguage)) {
+      return;
+    }
+    setSelectedLanguage(latestLanguage ?? availableLanguages[0]);
+  }, [availableLanguages, latestLanguage, selectedLanguage]);
+
+  useEffect(() => {
+    if (availableDurations.size === 0) {
+      setSelectedDuration(null);
+      return;
+    }
+    if (selectedDuration && availableDurations.has(selectedDuration)) {
+      return;
+    }
+    const has60 = availableDurations.has(60);
+    if (has60) {
+      setSelectedDuration(60);
+      return;
+    }
+    const firstAvailable = durationOptions.find((duration) => availableDurations.has(duration)) ?? null;
+    setSelectedDuration(firstAvailable);
+  }, [availableDurations, durationOptions, selectedDuration]);
+
   const chart = useMemo(() => {
     const sorted = [...runs]
       .filter((run) => (typingMode === "advanced" ? run.mode === "advanced" : run.mode !== "advanced"))
+      .filter((run) => (selectedDuration ? run.duration === selectedDuration : true))
+      .filter((run) => (!selectedLanguage ? true : run.language === selectedLanguage))
       .filter((run) => Number.isFinite(run.wpm) && Number.isFinite(run.accuracy))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-maxPoints);
@@ -111,6 +182,7 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
         x,
         yWpm,
         yAcc,
+        language: run.language,
       };
     });
 
@@ -143,7 +215,7 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
       wpmCeil,
       deltaWpm,
     };
-  }, [maxPoints, runs, typingMode]);
+  }, [maxPoints, runs, selectedDuration, selectedLanguage, typingMode]);
 
   const activePoint = chart && hoveredIndex !== null ? chart.points[hoveredIndex] : null;
 
@@ -246,7 +318,9 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
             Advanced
           </button>
         </div>
+      </div>
 
+      <div className="runs-chart-subcontrols">
         <div className="runs-chart-toggle" role="tablist" aria-label="Chart mode">
           <button
             type="button"
@@ -276,6 +350,25 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
             Both
           </button>
         </div>
+
+        {availableLanguages.length > 0 ? (
+          <div className="runs-language-toggle" role="tablist" aria-label="Language">
+            {availableLanguages.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                role="tab"
+                aria-selected={selectedLanguage === lang}
+                className={`runs-language-btn ${selectedLanguage === lang ? "active" : ""}`}
+                onClick={() => setSelectedLanguage(lang)}
+                title={LANGUAGE_LABELS[lang] ?? lang.toUpperCase()}
+                aria-label={LANGUAGE_LABELS[lang] ?? lang.toUpperCase()}
+              >
+                <LanguageFlagIcon language={lang} />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="runs-chart-wrap">
@@ -412,24 +505,54 @@ export function RecentRunsChart({ runs, maxPoints = 7 }: RecentRunsChartProps) {
             style={tooltipStyle}
           >
             <p className="runs-tooltip-date">{activePoint.date.toLocaleString()}</p>
+            <p className="runs-tooltip-line">
+              <span>Language</span>
+              <strong>{LANGUAGE_LABELS[activePoint.language] ?? activePoint.language.toUpperCase()}</strong>
+            </p>
             <p className="runs-tooltip-line"><span>WPM</span><strong>{activePoint.wpm}</strong></p>
             <p className="runs-tooltip-line"><span>Accuracy</span><strong>{activePoint.accuracy}%</strong></p>
           </div>
         ) : null}
       </div>
 
-      {viewMode === "both" ? (
-        <div className="runs-chart-legend">
-          <span className="runs-legend-item">
-            <span className="runs-legend-swatch wpm" />
-            WPM
-          </span>
-          <span className="runs-legend-item">
-            <span className="runs-legend-swatch acc" />
-            Accuracy
-          </span>
-        </div>
-      ) : null}
+      <div className="runs-chart-footer">
+        {viewMode === "both" ? (
+          <div className="runs-chart-legend">
+            <span className="runs-legend-item">
+              <span className="runs-legend-swatch wpm" />
+              WPM
+            </span>
+            <span className="runs-legend-item">
+              <span className="runs-legend-swatch acc" />
+              Accuracy
+            </span>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {durationOptions.length > 0 ? (
+          <div className="runs-duration-toggle" role="tablist" aria-label="Duration">
+            {durationOptions.map((duration) => {
+              const isAvailable = availableDurations.has(duration);
+              return (
+              <button
+                key={duration}
+                type="button"
+                role="tab"
+                aria-selected={selectedDuration === duration}
+                className={`runs-duration-btn ${selectedDuration === duration ? "active" : ""}`}
+                onClick={() => setSelectedDuration(duration)}
+                disabled={!isAvailable}
+                title={isAvailable ? `${duration}s runs` : "No runs for this duration"}
+              >
+                {duration}s
+              </button>
+            );
+            })}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 import GlobalHeader from "./components/global-header";
 import SideRailNav from "./components/side-rail-nav";
@@ -49,6 +49,15 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: [favicon],
       apple: [{ url: appleTouch }],
     },
+  };
+}
+
+export function generateViewport(): Viewport {
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: dark)", color: "#0b1227" },
+      { media: "(prefers-color-scheme: light)", color: "#0b1227" },
+    ],
   };
 }
 

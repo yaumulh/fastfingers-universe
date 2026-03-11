@@ -446,8 +446,16 @@ export default function HomePage() {
             <aside className="hero-panel glass">
               <div className="hero-illustration-wrap">
                 {homeHeroLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={homeHeroLogo} alt="Fast-fingers Universe logo" className="hero-illustration hero-illustration-logo" />
+                  <Image
+                    src={homeHeroLogo}
+                    alt="Fast-fingers Universe logo"
+                    width={960}
+                    height={540}
+                    sizes="(max-width: 900px) 82vw, 520px"
+                    priority
+                    unoptimized
+                    className="hero-illustration hero-illustration-logo"
+                  />
                 ) : !brandingReady ? (
                   <div className="hero-illustration hero-illustration-placeholder" aria-hidden="true" />
                 ) : (

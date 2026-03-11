@@ -602,6 +602,7 @@ a {
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 2px 10px rgba(76, 184, 255, 0.26));
+  aspect-ratio: 1600 / 220;
 }
 
 .brand-wordmark-placeholder {
@@ -1752,6 +1753,7 @@ a {
 .hero-illustration-logo {
   object-fit: contain;
   max-height: 360px;
+  aspect-ratio: 16 / 9;
 }
 
 @keyframes heroFloat {

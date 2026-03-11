@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 type UserAvatarProps = {
   username?: string | null;
   displayName?: string | null;
@@ -28,8 +30,15 @@ export function UserAvatar({
   return (
     <span className={classes} title={title} aria-hidden="true">
       {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt="" className="user-avatar-image" />
+        <Image
+          src={avatarUrl}
+          alt=""
+          width={64}
+          height={64}
+          sizes="48px"
+          unoptimized
+          className="user-avatar-image"
+        />
       ) : (
         <span className="user-avatar-fallback">{initial}</span>
       )}

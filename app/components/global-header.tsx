@@ -716,16 +716,31 @@ export default function GlobalHeader() {
       <header className="top-nav glass">
         <Link href="/" className="brand-wrap" aria-label="Fast-fingers Universe home">
           {headerWordmarkLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={headerWordmarkLogo} alt="Fast-fingers Universe" className="brand-wordmark" />
+            <Image
+              src={headerWordmarkLogo}
+              alt="Fast-fingers Universe"
+              width={1600}
+              height={220}
+              sizes="(max-width: 900px) 48vw, 220px"
+              priority
+              unoptimized
+              className="brand-wordmark"
+            />
           ) : !brandingReady ? (
             <span className="brand-wordmark brand-wordmark-placeholder" aria-hidden="true" />
           ) : (
             <>
               <span className="brand-logo-shell" aria-hidden="true">
                 {headerIconLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={headerIconLogo} alt="" className="brand-logo-img" />
+                  <Image
+                    src={headerIconLogo}
+                    alt=""
+                    width={40}
+                    height={40}
+                    sizes="40px"
+                    unoptimized
+                    className="brand-logo-img"
+                  />
                 ) : (
                   <Image src="/images/ff-transparent.png" alt="" width={40} height={40} className="brand-logo-img" priority />
                 )}

@@ -18,6 +18,7 @@ import {
 import { LanguageFlagIcon } from "./components/language-flag-icon";
 import { UserAvatar } from "./components/user-avatar";
 import { UserRankBadge } from "./components/user-rank-badge";
+import { AdsenseSlot } from "./components/adsense-slot";
 import type { LanguageCode } from "./typing/word-banks";
 
 type HomeSnapshot = {
@@ -471,6 +472,8 @@ export default function HomePage() {
               </div>
             </aside>
           </div>
+
+          <AdsenseSlot slot={process.env.NEXT_PUBLIC_ADSENSE_HOME_SLOT ?? ""} className="home-ad-slot" />
 
           <section className="section section-stats" aria-label="Live stats">
             <h2 className="section-title">

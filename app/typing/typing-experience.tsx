@@ -54,7 +54,7 @@ type TypingLeaderboardRow = {
     username: string;
     displayName?: string | null;
     avatarUrl?: string | null;
-    tags?: Array<{
+      tags?: Array<{
       code:
         | "role_mod"
         | "lang_daily_1"
@@ -63,8 +63,8 @@ type TypingLeaderboardRow = {
         | "adv_daily_1"
         | "adv_weekly_1"
         | "adv_alltime_1";
-      label: string;
-    }>;
+        label: string;
+      }>;
   } | null;
 };
 
@@ -1104,133 +1104,135 @@ export function TypingExperience({
         </p>
       </section>
 
-      <section className="typing-controls glass card">
-        <div className="typing-control-block">
-          <p className="typing-control-label">
-            <GlobeIcon className="ui-icon" />
-            Language
-          </p>
-          <div className="modern-select" ref={languageSelectRef}>
-            <button
-              type="button"
-              className={`modern-select-trigger ${isLanguageOpen ? "open" : ""}`}
-              onClick={() => setIsLanguageOpen((current) => !current)}
-              disabled={status === "running" || lockLanguage}
-              aria-haspopup="listbox"
-              aria-expanded={isLanguageOpen}
-            >
-              <span className="modern-select-value">
-                <span className="language-flag-icon">
-                  <LanguageFlagIcon language={language} />
-                </span>
-                {LANGUAGE_LABELS[language]}
-              </span>
-              <span className="modern-select-chevron">v</span>
-            </button>
-            {isLanguageOpen ? (
-              <div className="modern-select-panel" role="listbox" aria-label="Language options">
-                {languageOptions.map(([code, label]) => (
-                  <button
-                    key={code}
-                    type="button"
-                    role="option"
-                    aria-selected={language === code}
-                    className={`modern-select-option ${language === code ? "active" : ""}`}
-                    onClick={() => {
-                      setLanguage(code);
-                      setLeaderboardDuration(DEFAULT_DURATION_SECONDS);
-                      window.localStorage.setItem(PREFERRED_LANGUAGE_KEY, code);
-                      resetTest(code, duration);
-                      setIsLanguageOpen(false);
-                      focusTypingInput();
-                    }}
-                  >
-                    <span className="modern-select-value">
-                      <span className="language-flag-icon">
-                        <LanguageFlagIcon language={code} />
-                      </span>
-                      {label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="typing-control-block">
-          <p className="typing-control-label">
-            <TimerIcon className="ui-icon" />
-            Duration
-          </p>
-          <div className="typing-segmented typing-duration-segmented">
-            {DURATION_OPTIONS.map((item) => (
+      <section className="typing-dashboard card glass">
+        <div className="typing-controls">
+          <div className="typing-control-block">
+            <p className="typing-control-label">
+              <GlobeIcon className="ui-icon" />
+              Language
+            </p>
+            <div className="modern-select" ref={languageSelectRef}>
               <button
-                key={item}
                 type="button"
-                className={`segment-btn ${duration === item ? "active" : ""}`}
-                disabled={status === "running" || typeof fixedDuration === "number"}
-                onClick={() => {
-                  if (typeof fixedDuration === "number") return;
-                  setDuration(item);
-                  resetTest(language, item);
-                  focusTypingInput();
-                }}
+                className={`modern-select-trigger ${isLanguageOpen ? "open" : ""}`}
+                onClick={() => setIsLanguageOpen((current) => !current)}
+                disabled={status === "running" || lockLanguage}
+                aria-haspopup="listbox"
+                aria-expanded={isLanguageOpen}
               >
-                {item}s
+                <span className="modern-select-value">
+                  <span className="language-flag-icon">
+                    <LanguageFlagIcon language={language} />
+                  </span>
+                  {LANGUAGE_LABELS[language]}
+                </span>
+                <span className="modern-select-chevron">v</span>
               </button>
-            ))}
+              {isLanguageOpen ? (
+                <div className="modern-select-panel" role="listbox" aria-label="Language options">
+                  {languageOptions.map(([code, label]) => (
+                    <button
+                      key={code}
+                      type="button"
+                      role="option"
+                      aria-selected={language === code}
+                      className={`modern-select-option ${language === code ? "active" : ""}`}
+                      onClick={() => {
+                        setLanguage(code);
+                        setLeaderboardDuration(DEFAULT_DURATION_SECONDS);
+                        window.localStorage.setItem(PREFERRED_LANGUAGE_KEY, code);
+                        resetTest(code, duration);
+                        setIsLanguageOpen(false);
+                        focusTypingInput();
+                      }}
+                    >
+                      <span className="modern-select-value">
+                        <span className="language-flag-icon">
+                          <LanguageFlagIcon language={code} />
+                        </span>
+                        {label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          <div className="typing-control-block">
+            <p className="typing-control-label">
+              <TimerIcon className="ui-icon" />
+              Duration
+            </p>
+            <div className="typing-segmented typing-duration-segmented">
+              {DURATION_OPTIONS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={`segment-btn ${duration === item ? "active" : ""}`}
+                  disabled={status === "running" || typeof fixedDuration === "number"}
+                  onClick={() => {
+                    if (typeof fixedDuration === "number") return;
+                    setDuration(item);
+                    resetTest(language, item);
+                    focusTypingInput();
+                  }}
+                >
+                  {item}s
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary"
+            type="button"
+            onClick={() => {
+              resetTest();
+              focusTypingInput();
+            }}
+          >
+            <KeyboardIcon className="ui-icon" />
+            Restart Test
+          </button>
         </div>
 
-        <button
-          className="btn btn-primary"
-          type="button"
-          onClick={() => {
-            resetTest();
-            focusTypingInput();
-          }}
-        >
-          <KeyboardIcon className="ui-icon" />
-          Restart Test
-        </button>
-      </section>
-
-      <section className="typing-stats grid-3">
-        <article className="card glass">
-          <span className="ui-icon-badge">
-            <GaugeIcon className="ui-icon" />
-          </span>
-          <p className="kpi">{wpm}</p>
-          <p className="kpi-label wpm-label">
-            WPM
-            {wpm >= 100 ? (
-              <motion.span
-                className="wpm-boost"
-                initial={{ scale: 0.92, opacity: 0 }}
-                animate={{ scale: [1, 1.12, 1], opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                <RocketIcon className="ui-icon" />
-                Boost
-              </motion.span>
-            ) : null}
-          </p>
-        </article>
-        <article className="card glass">
-          <span className="ui-icon-badge">
-            <CheckIcon className="ui-icon" />
-          </span>
-          <p className="kpi">{accuracy}%</p>
-          <p className="kpi-label">Accuracy</p>
-        </article>
-        <article className="card glass">
-          <span className="ui-icon-badge">
-            <TimerIcon className="ui-icon" />
-          </span>
-          <p className="kpi">{formatSeconds(timeLeft)}</p>
-          <p className="kpi-label">Time Left</p>
-        </article>
+        <div className="typing-dashboard-stats">
+          <div className="typing-dashboard-stat">
+            <span className="ui-icon-badge">
+              <GaugeIcon className="ui-icon" />
+            </span>
+            <p className="kpi">{wpm}</p>
+            <p className="kpi-label wpm-label">
+              WPM
+              {wpm >= 100 ? (
+                <motion.span
+                  className="wpm-boost"
+                  initial={{ scale: 0.92, opacity: 0 }}
+                  animate={{ scale: [1, 1.12, 1], opacity: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                >
+                  <RocketIcon className="ui-icon" />
+                  Boost
+                </motion.span>
+              ) : null}
+            </p>
+          </div>
+          <div className="typing-dashboard-stat">
+            <span className="ui-icon-badge">
+              <CheckIcon className="ui-icon" />
+            </span>
+            <p className="kpi">{accuracy}%</p>
+            <p className="kpi-label">Accuracy</p>
+          </div>
+          <div className="typing-dashboard-stat">
+            <span className="ui-icon-badge">
+              <TimerIcon className="ui-icon" />
+            </span>
+            <p className="kpi">{formatSeconds(timeLeft)}</p>
+            <p className="kpi-label">Time Left</p>
+          </div>
+        </div>
       </section>
 
       <section className="typing-progress card glass" aria-label="Typing progress">

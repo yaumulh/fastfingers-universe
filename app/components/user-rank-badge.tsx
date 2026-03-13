@@ -11,7 +11,7 @@ type UserTag = {
 type ChampionTier = "today" | "week" | "alltime";
 type ChampionMode = "normal" | "advanced";
 
-function tagOrder(code: string): number {
+function tagOrder(code: UserTag["code"]): number {
   if (code === "role_mod") return 0;
   if (code === "adv_alltime_1") return 1;
   if (code === "adv_weekly_1") return 2;

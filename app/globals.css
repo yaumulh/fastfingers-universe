@@ -1756,6 +1756,24 @@ a {
   aspect-ratio: 16 / 9;
 }
 
+.adsense-slot {
+  margin: 1.4rem 0 1.8rem;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: rgba(6, 14, 32, 0.35);
+  border: 1px solid rgba(110, 150, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.adsense-unit {
+  width: 100%;
+  min-height: 90px;
+}
+
+.home-ad-slot {
+  margin-top: 1.2rem;
+}
+
 @keyframes heroFloat {
   0%,
   100% {
@@ -2485,6 +2503,57 @@ a {
   gap: 0.45rem;
 }
 
+.typing-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  position: relative;
+  z-index: 2000;
+  overflow: visible;
+}
+
+.typing-dashboard .typing-controls {
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.typing-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+.typing-dashboard-stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon value"
+    "icon label";
+  column-gap: 0.75rem;
+  row-gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 170, 255, 0.16);
+  background: rgba(6, 14, 32, 0.35);
+}
+
+.typing-dashboard-stat .ui-icon-badge {
+  grid-area: icon;
+}
+
+.typing-dashboard-stat .kpi {
+  grid-area: value;
+  margin: 0;
+}
+
+.typing-dashboard-stat .kpi-label {
+  grid-area: label;
+  margin: 0;
+}
+
 .typing-control-label {
   display: inline-flex;
   align-items: center;
@@ -2501,6 +2570,7 @@ a {
 
 .modern-select {
   position: relative;
+  z-index: 1100;
 }
 
 .modern-select-trigger {
@@ -2548,7 +2618,7 @@ a {
   bottom: auto;
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: 1200;
   border-radius: 12px;
   padding: 0.36rem;
   border: 1px solid rgba(157, 191, 255, 0.35);
@@ -2673,12 +2743,12 @@ a {
   position: relative;
   z-index: 1;
   margin-top: 1rem;
-  contain: paint;
 }
 
 .typing-progress {
+  position: relative;
+  z-index: 1;
   margin-top: 1rem;
-  contain: paint;
 }
 
 .typing-page .typing-controls.card.glass,
@@ -2782,6 +2852,8 @@ a {
 
 .typing-arena {
   margin-top: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 .typing-target {
@@ -4076,6 +4148,7 @@ a {
   stroke-width: 2.2;
 }
 
+
 .user-rank-count {
   position: absolute;
   right: -0.34rem;
@@ -4221,6 +4294,7 @@ a {
     transform: translateY(-0.28rem);
   }
 }
+
 
 .result-modal-backdrop {
   position: fixed;
@@ -7470,6 +7544,10 @@ a {
   }
 
   .typing-stats.grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .typing-dashboard-stats {
     grid-template-columns: 1fr;
   }
 

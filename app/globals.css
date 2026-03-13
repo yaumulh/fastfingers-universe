@@ -554,7 +554,7 @@ a {
 .top-nav {
   position: sticky;
   top: 16px;
-  z-index: 20;
+  z-index: 60;
   margin: 1.2rem auto 0;
   border-radius: 999px;
   padding: 0.52rem 0.82rem;
@@ -562,6 +562,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  overflow: visible;
 }
 
 .brand {
@@ -1588,7 +1589,7 @@ a {
   transform: translateY(4px);
   pointer-events: none;
   transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
-  z-index: 120;
+  z-index: 4000;
 }
 
 .theme-menu.open .theme-menu-panel {
@@ -2434,6 +2435,13 @@ a {
   padding-bottom: 3rem;
 }
 
+.typing-header {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  margin-bottom: 0.9rem;
+}
+
 .typing-header h1 {
   display: inline-flex;
   align-items: center;
@@ -2445,7 +2453,7 @@ a {
 }
 
 .typing-header p {
-  margin: 0.7rem 0 0;
+  margin: 0;
   color: var(--text-secondary);
   max-width: 70ch;
 }
@@ -2506,9 +2514,9 @@ a {
 .typing-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1rem;
   position: relative;
-  z-index: 2000;
+  z-index: 10;
   overflow: visible;
 }
 
@@ -2521,37 +2529,52 @@ a {
 }
 
 .typing-dashboard-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.1rem;
+  display: block;
 }
 
-.typing-dashboard-stat {
+.typing-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.typing-dashboard-metric {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "icon value"
-    "icon label";
-  column-gap: 0.75rem;
-  row-gap: 0.2rem;
-  padding: 0.75rem 0.9rem;
+  align-items: center;
+  column-gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
   border-radius: 14px;
   border: 1px solid rgba(120, 170, 255, 0.16);
   background: rgba(6, 14, 32, 0.35);
+  min-height: 74px;
 }
 
-.typing-dashboard-stat .ui-icon-badge {
-  grid-area: icon;
-}
-
-.typing-dashboard-stat .kpi {
-  grid-area: value;
+.typing-dashboard-metric .kpi {
   margin: 0;
 }
 
-.typing-dashboard-stat .kpi-label {
-  grid-area: label;
+.typing-dashboard-metric .kpi-label {
   margin: 0;
+}
+
+
+.typing-mini-chart {
+  width: 100%;
+  height: auto;
+}
+
+.typing-mini-line {
+  stroke: rgba(142, 211, 255, 0.9);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgba(90, 200, 255, 0.35));
+}
+
+.typing-mini-dot {
+  fill: #b8f2ff;
+  filter: drop-shadow(0 0 6px rgba(90, 230, 255, 0.6));
 }
 
 .typing-control-label {

@@ -539,6 +539,7 @@ export function TypingExperience({
     return () => window.clearInterval(timer);
   }, [status]);
 
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1198,39 +1199,47 @@ export function TypingExperience({
         </div>
 
         <div className="typing-dashboard-stats">
-          <div className="typing-dashboard-stat">
-            <span className="ui-icon-badge">
-              <GaugeIcon className="ui-icon" />
-            </span>
-            <p className="kpi">{wpm}</p>
-            <p className="kpi-label wpm-label">
-              WPM
-              {wpm >= 100 ? (
-                <motion.span
-                  className="wpm-boost"
-                  initial={{ scale: 0.92, opacity: 0 }}
-                  animate={{ scale: [1, 1.12, 1], opacity: 1 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                  <RocketIcon className="ui-icon" />
-                  Boost
-                </motion.span>
-              ) : null}
-            </p>
-          </div>
-          <div className="typing-dashboard-stat">
-            <span className="ui-icon-badge">
-              <CheckIcon className="ui-icon" />
-            </span>
-            <p className="kpi">{accuracy}%</p>
-            <p className="kpi-label">Accuracy</p>
-          </div>
-          <div className="typing-dashboard-stat">
-            <span className="ui-icon-badge">
-              <TimerIcon className="ui-icon" />
-            </span>
-            <p className="kpi">{formatSeconds(timeLeft)}</p>
-            <p className="kpi-label">Time Left</p>
+          <div className="typing-dashboard-metrics">
+            <div className="typing-dashboard-metric">
+              <span className="ui-icon-badge">
+                <GaugeIcon className="ui-icon" />
+              </span>
+              <div>
+                <p className="kpi">{wpm}</p>
+                <p className="kpi-label wpm-label">
+                  WPM
+                  {wpm >= 100 ? (
+                    <motion.span
+                      className="wpm-boost"
+                      initial={{ scale: 0.92, opacity: 0 }}
+                      animate={{ scale: [1, 1.12, 1], opacity: 1 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
+                      <RocketIcon className="ui-icon" />
+                      Boost
+                    </motion.span>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+            <div className="typing-dashboard-metric">
+              <span className="ui-icon-badge">
+                <CheckIcon className="ui-icon" />
+              </span>
+              <div>
+                <p className="kpi">{accuracy}%</p>
+                <p className="kpi-label">Accuracy</p>
+              </div>
+            </div>
+            <div className="typing-dashboard-metric">
+              <span className="ui-icon-badge">
+                <TimerIcon className="ui-icon" />
+              </span>
+              <div>
+                <p className="kpi">{formatSeconds(timeLeft)}</p>
+                <p className="kpi-label">Time Left</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
